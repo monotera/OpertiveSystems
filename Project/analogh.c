@@ -16,13 +16,18 @@ int main(int argc, char *argv[])
     while (1)
     {
         int option;
-        printf("1. Realizar una consulta\n");
-        printf("2. Salir del sistema\n");
+        printf("1. Make a query\n");
+        printf("2. log out\n");
         scanf("%d", &option);
         switch (option)
         {
         case 1:
             printf("Hello world\n");
+            char * comand;
+            printf("$ ");
+            scanf("%s",comand);
+            //validate comand
+            printf("%s %s",comand,"\n");
             break;
         case 2:
             printf("Good bye world\n");
