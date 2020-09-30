@@ -1,4 +1,3 @@
-/*issue : cuanto la division da decimal, siempre habran mas lineas que nmpares?*/
 #include "libProcess.h"
 
 #define chunk 1024
@@ -7,60 +6,51 @@ void split(char *logfile, int lines, int nmappers)
 {
 
     FILE *file = fopen(logfile, "r");
-    if (file != NULL)
+    int sub_lines = lines / nmappers;
+
+    if (file != NULL && sub_lines > 0)
     {
+
         char *str = (char *)malloc(chunk);
-        int sub_lines = lines / nmappers;
-        int close_flag = lines % nmappers;
-        printf("%d %s", sub_lines, "\n");
-        int cont_lines = 1, cont_buffer = 0;
-        char *buff = (char *)malloc(4);
+        int cont_lines = 1, cont_splitFer = 0;
+        char *splitF = (char *)malloc(5);
         char *extension = (char *)malloc(4);
-        char *buffname = (char *)malloc(9);
-        char *aux = (char *)malloc(9);
+        char *aux = (char *)malloc(10);
         char *index = (char *)malloc(6);
-        strcpy(buff, "buff");
+        strcpy(splitF, "split");
         strcpy(extension, ".txt");
-        strcpy(buffname, "buff0.txt");
+        strcpy(aux, "split0.txt");
         FILE *writer;
         int flag = 1;
 
         while (fgets(str, chunk, file))
-        {printf("entro");
-           /* printf("%d %s %d %s", cont_lines, " == ", sub_lines, "\n");*/
-            if (cont_lines == sub_lines && cont_buffer != nmappers-1)
+        {
+            if (flag == 1)
             {
-                printf("entro");
+                writer = fopen(aux, "w");
+                flag = 0;
+            }
+            if (cont_lines == sub_lines && cont_splitFer != nmappers - 1)
+            {
                 cont_lines = 0;
-                cont_buffer++;
-                sprintf(index, "%d", cont_buffer);
-                strcpy(aux, buff);
+                cont_splitFer++;
+                sprintf(index, "%d", cont_splitFer);
+                strcpy(aux, splitF);
                 strcat(aux, index);
                 strcat(aux, extension);
-                strcpy(buffname, aux);
                 flag = 1;
                 fprintf(writer, "%s", str);
-                printf("%s %s %s", "linea ", str, "\n");
                 fclose(writer);
-                printf("-----------------cerrar----------------\n");
             }
             else
             {
-                if (flag == 1)
-                {
-                    printf("-----------------abrir----------------\n");
-                    writer = fopen(buffname, "w");
-                    flag = 0;
-                }
                 fprintf(writer, "%s", str);
-                printf("%s %s %s", "linea ", str, "\n");
             }
+
             cont_lines++;
         }
         fclose(file);
-        printf("%d",cont_buffer);
         fclose(writer);
-        
     }
     else
     {
