@@ -1,8 +1,4 @@
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <stdio.h>
-#include <unistd.h>
+#include "libs/libProcess.h"
 
 /*
      compile file = gcc -std=c89 -o analogh analogh.c
@@ -26,10 +22,13 @@ int main(int argc, char *argv[])
         {
         case 1:
             printf("Hello world\n");
-            char * comand;
+            char * command;
             printf("$ ");
-            scanf("%s",comand);
-            printf("%s %s",comand,"\n");
+            scanf("%s",command);
+            
+            int lines = *argv[2]-'0';
+            split(argv[1],lines,15);
+            printf("\n");
             break;
         case 2:
             printf("Good bye world\n");
