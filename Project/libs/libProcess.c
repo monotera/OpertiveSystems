@@ -26,10 +26,11 @@ void split(char *logfile, int lines, int nmappers)
         int flag = 1;
 
         while (fgets(str, chunk, file))
-        {
+        {printf("entro");
            /* printf("%d %s %d %s", cont_lines, " == ", sub_lines, "\n");*/
-            if (cont_lines == sub_lines)
+            if (cont_lines == sub_lines && cont_buffer != nmappers-1)
             {
+                printf("entro");
                 cont_lines = 0;
                 cont_buffer++;
                 sprintf(index, "%d", cont_buffer);
@@ -57,9 +58,8 @@ void split(char *logfile, int lines, int nmappers)
             cont_lines++;
         }
         fclose(file);
-        if(close_flag != 0){
-            fclose(writer);
-        }
+        printf("%d",cont_buffer);
+        fclose(writer);
         
     }
     else
