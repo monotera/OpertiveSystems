@@ -22,12 +22,13 @@ int main(int argc, char *argv[])
         {
         case 1:
             printf("Hello world\n");
-            char * command;
+            /*char * command;
             printf("$ ");
-            scanf("%s",command);
-            
-            int lines = *argv[2]-'0';
-            split(argv[1],lines,15);
+            scanf("%s",command);*/
+            int lines = atoi(argv[2]);
+            printf("%d %s",lines,"\n");
+            int mappers = atoi(argv[3]);
+            split(argv[1],lines,mappers);
             printf("\n");
             break;
         case 2:
