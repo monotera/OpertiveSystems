@@ -1,7 +1,8 @@
 #include "libs/libThreads.h"
 
 /*
-    compile file = gcc -pthread -std=c89  -o  analogh analogh.c 
+    compile file = gcc -pthread -std=c89  -o  analogh analogh.c libs/libThreads.c
+
 */
 int main(int argc, char *argv[])
 {
@@ -20,12 +21,16 @@ int main(int argc, char *argv[])
         {
         case 1:
             printf("Hello world\n");
-            char * command;
+            /*char * command;
             printf("$ ");
             scanf("%s",command);
-            /*validate command*/
-            printf("%s %s",command,"\n");
-            reducer(15);
+            /*validate command
+            printf("%s %s",command,"\n");*/
+            int lines = atoi(argv[2]);
+            printf("%d %s",lines,"\n");
+            int mappers = atoi(argv[3]);
+            split(argv[1],lines,mappers);
+            printf("\n");
             break;
         case 2:
             printf("Good bye world\n");
