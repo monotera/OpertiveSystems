@@ -19,14 +19,18 @@ typedef struct command
     int eq;
 } command;
 
+void intializer(int nmappers);
 void split(char *logfile, int lines, int nmappers); /*Create split files*/
+int deleteSplit(int nmappers);
 void createMappers(int nmappers, char *command);
 struct command transform_command(char *command);
-int validate_command(int col, char *dif, int eq);
-void mapper(char *split, int col, int dif, int eq);
+int validate_command(int col, char *dif, int eq, int flag);
+void mapper(char *split, char *command);
 struct map line_checker(char *str, int col, int dif, int eq);
 int createReducers(int nreducers, int nmappers);
 int reducer(); /* creates output files */
 void printAnswer(int total);
+int lineCounter (char *log);
+void clear(int nmappers);
 
 #endif

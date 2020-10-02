@@ -25,13 +25,9 @@ int main(int argc, char *argv[])
             char * command;
             printf("$ ");
             scanf("%s",command);
-            /*validate command*/
-            printf("%s %s",command,"\n");
             int lines = atoi(argv[2]);
-            printf("%d %s",lines,"\n");
-            int mappers = atoi(argv[3]);
-            /*split(argv[1],lines,mappers);*/
-            prueba(command,"5,<=,2","f,<=,9");
+            int nmappers = atoi(argv[3]);
+            prueba(command, argv[1], lines, nmappers);
             printf("\n");
             break;
         case 2:
