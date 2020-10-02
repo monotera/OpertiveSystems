@@ -27,7 +27,7 @@ void split(char *logfile, int lines, int nmappers)
         int cont_lines = 1;
         int cont_splitFer = 0;
         char *aux = (char *)malloc(10);
-        strcpy(aux,"split0.txt");
+        strcpy(aux, "split0.txt");
         FILE *writer;
         int flag = 1;
 
@@ -69,12 +69,7 @@ void split(char *logfile, int lines, int nmappers)
 int deleteSplit(int nmappers)
 {
     int i;
-    char *splitF = (char *)malloc(5);
-    char *extension = (char *)malloc(4);
     char *aux = (char *)malloc(10);
-    char *index = (char *)malloc(6);
-    strcpy(splitF, "split");
-    strcpy(extension, ".txt");
     strcpy(aux, "split0.txt");
     for (i = 0; i < nmappers; i++)
     {
@@ -82,21 +77,12 @@ int deleteSplit(int nmappers)
         if (rc)
         {
             perror("The file couldnt be delete it");
-            free(splitF);
-            free(extension);
             free(aux);
-            free(index);
             return -1;
         }
-        sprintf(index, "%d", i + 1);
-        strcpy(aux, splitF);
-        strcat(aux, index);
-        strcat(aux, extension);
+        sprintf(aux, "split%d.txt", i + 1);
     }
-    free(splitF);
-    free(extension);
     free(aux);
-    free(index);
     return 0;
 }
 
@@ -120,8 +106,8 @@ void prueba(char *command, char *log, int lines, int nmappers)
     split(log, lines, nmappers);
 
     createMappers(nmappers, command);
-    deleteSplit(nmappers);
-    pruebaImprimir();
+    /*deleteSplit(nmappers);*/
+    /*pruebaImprimir();*/
     int i;
     for (i = 0; i < cont; i++)
     {
@@ -132,21 +118,46 @@ void prueba(char *command, char *log, int lines, int nmappers)
 }
 void createMappers(int nmappers, char *commandM)
 {
-    mapper("test1", commandM);
+    pthread_t thread1[nmappers];
+    par x;
+    x.command = (char *)calloc(20, sizeof(char) * 20);
+    x.split = (char *)calloc(20, sizeof(char) * 20);
+    strcpy(x.split, "split0.txt");
+    strcpy(x.command, "5,<=,4");
+    par y;
+    y.command = (char *)calloc(20, sizeof(char) * 20);
+    y.split = (char *)calloc(20, sizeof(char) * 20);
+    strcpy(y.split, "split1.txt");
+    strcpy(y.command, "5,<=,4");
+
+    pthread_create(&thread1[0], NULL, mapper, (void *)&x);
+    pthread_join(thread1[0], NULL);
+    pthread_create(&thread1[1], NULL, mapper, (void *)&y);
+    pthread_join(thread1[1], NULL);
+    int i = 0;
+    
+    
+    free(x.command);
+    free(x.split);
 }
-void mapper(char *split, char *commandM)
+void *mapper(void *infor)
 {
+    struct par *info;
+    info = (par *)infor;
+    char *commandM = info->command;
+    char *splitFile = info->split;
+
     command com = transform_command(commandM);
     if (com.dif == -1)
     {
         printf("-----------------------Error---------------------\n");
         return;
     }
-    FILE *file = fopen(split, "r");
+    FILE *file = fopen(splitFile, "r");
     map x;
     int i = 1;
     int numLines;
-    numLines = lineCounter(split);
+    numLines = lineCounter(splitFile);
     if (numLines == -1)
     { /*Error*/
         return;
@@ -174,6 +185,8 @@ void mapper(char *split, char *commandM)
     {
         printf("Error\n");
     }
+
+    pthread_exit(NULL);
 }
 struct command transform_command(char *command)
 {
@@ -335,8 +348,10 @@ struct map line_checker(char *str, int col, int dif, int eq)
 
 int reducer()
 {
+    printf("\n => %d \n", mappers[reducer_index][0].key-1);
     reducer_Answer += mappers[reducer_index][0].key - 1;
     reducer_index++;
+    
 }
 
 int lineCounter(char *log)

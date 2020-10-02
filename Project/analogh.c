@@ -7,11 +7,11 @@
 
 int main(int argc, char *argv[])
 {
-    if (argc != 5)
+    /*if (argc != 5)
     {
         printf("Error : wrong number of parameters\n");
         exit(-1);
-    }
+    }*/
     while (1)
     {
         int option;
