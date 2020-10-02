@@ -13,14 +13,4 @@ int main(int argc, char *argv[])
     int lineas;
     sprintf(comando, "cat %s | wc -l > valor.txt", "test1");
     printf("comando = %s\n", comando);
-    system(comando);
-    fp1 = fopen("valor.txt", "r");
-    if (fp1 == NULL)
-    {
-        perror("Error: ");
-        return (-1);
-    }
-    fscanf(fp1, "%d", &lineas);
-    fclose(fp1);
-    printf("hay %d lineas\n", lineas);
 }

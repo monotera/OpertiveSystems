@@ -4,17 +4,43 @@
 map **mappers;
 int cont;
 int reducer_Answer;
-int reducer_index;
+
+int processControl(char *log, int lines, int nmappers, int nreducers, char *command)
+{
+    int status = 0;
+    intializer(nmappers);
+    status = split(log, lines, nmappers);
+    if (status)
+    {
+        return status;
+    }
+    status = createMappers(nmappers, command);
+    if (status)
+    {
+        return status;
+    }
+    status = deleteSplit(nmappers);
+    if (status)
+    {
+        return status;
+    }
+    status = createReducers(nreducers, nmappers);
+    if (status)
+    {
+        return status;
+    }
+    clear(nmappers);
+    return reducer_Answer;
+}
 
 void intializer(int nmappers)
 {
     mappers = (map **)malloc(nmappers * (sizeof(map *)));
     cont = 0;
     reducer_Answer = 0;
-    reducer_index = 0;
 }
 
-void split(char *logfile, int lines, int nmappers)
+int split(char *logfile, int lines, int nmappers)
 {
 
     FILE *file = fopen(logfile, "r");
@@ -36,6 +62,11 @@ void split(char *logfile, int lines, int nmappers)
             if (flag == 1)
             {
                 writer = fopen(aux, "w");
+                if (writer == NULL)
+                {
+                    perror("Error: ");
+                    return -1;
+                }
                 flag = 0;
             }
             if (cont_lines == sub_lines && cont_splitFer != nmappers - 1)
@@ -62,113 +93,39 @@ void split(char *logfile, int lines, int nmappers)
     }
     else
     {
-        printf("Error\n");
+        perror("Error: ");
+        return -1;
     }
-}
-
-int deleteSplit(int nmappers)
-{
-    int i;
-    char *aux = (char *)malloc(10);
-    strcpy(aux, "split0.txt");
-    for (i = 0; i < nmappers; i++)
-    {
-        int rc = remove(aux);
-        if (rc)
-        {
-            perror("The file couldnt be delete it");
-            free(aux);
-            return -1;
-        }
-        sprintf(aux, "split%d.txt", i + 1);
-    }
-    free(aux);
     return 0;
 }
-
-void pruebaImprimir()
+int createMappers(int nmappers, char *commandM)
 {
-    int i = 0;
-    for (i = 0; i < cont; i++)
-    {
-        int j = 0;
-        printf("-----------------------------------------------\n");
-        for (j = 1; j < mappers[i][0].key; j++)
-        {
-            printf("%d %d \n", mappers[i][j].key, mappers[i][j].value);
-        }
-    }
-}
-
-void prueba(char *command, char *log, int lines, int nmappers)
-{
-    /*nmappers = 10;*/
-    intializer(nmappers);
-
-    split(log, lines, nmappers);
-
-    createMappers(nmappers, command);
-    createReducers(4, 10);
-    pruebaImprimir();
-    deleteSplit(nmappers);
-    printf("\n %d", reducer_Answer);
-    clear(nmappers);
-}
-void *reducer(void *assig)
-{
-    int *assignments = assig;
-    int i = 0;
-    int index;
-    while (assignments[i] != -1)
-    {
-        index = assignments[i];
-        reducer_Answer += mappers[index][0].key - 1;
-        i++;
-    }
-    printf("\n");
-}
-int createReducers(int nreducers, int nmappers)
-{
-    pthread_t thread1[nreducers];
-    int *assignments[nreducers];
-    int i = 0, k = 0, j = 0;
-    for (i = 0; i < nreducers; i++)
-        assignments[i] = (int *)calloc(20, sizeof(int) * 20);
-    i = 0;
-    while (i < nmappers)
-    {
-        assignments[j][k] = i;
-        assignments[j][k + 1] = -1;
-        i++;
-        j++;
-        if (j == nreducers)
-        {
-            j = 0;
-            k++;
-        }
-    }
-    for (i = 0; i < nreducers; i++)
-    {
-        pthread_create(&thread1[i], NULL, reducer, (void *)assignments[i]);
-    }
-    for (i = 0; i < nreducers; i++)
-    {
-        pthread_join(thread1[i], NULL);
-    }
-}
-void createMappers(int nmappers, char *commandM)
-{
+    int rc;
     pthread_t thread1;
     parameters par;
     int i = 0;
+    void * status;
     par.command = (char *)calloc(20, sizeof(command));
     par.split = (char *)calloc(20, sizeof(char) * 20);
     for (i = 0; i < nmappers; i++)
     {
         sprintf(par.split, "split%d.txt", i);
         strcpy(par.command, commandM);
-        pthread_create(&thread1, NULL, mapper, (void *)&par);
-        pthread_join(thread1, NULL);
+        rc = pthread_create(&thread1, NULL, mapper, (void *)&par);
+        if (rc)
+        {
+            perror("Error: ");
+            return -1;
+        }
+        rc = pthread_join(thread1, NULL);
+        if (rc)
+        {
+            perror("Error: ");
+            return -1;
+        }
+        if(par.status){
+            return -1;
+        }
     }
 
     free(par.command);
@@ -180,12 +137,13 @@ void *mapper(void *infor)
     info = (parameters *)infor;
     char *commandM = info->command;
     char *splitFile = info->split;
-
+    info->status = 0;
+    
     command com = transform_command(commandM);
     if (com.dif == -1)
     {
-        printf("-----------------------Error---------------------\n");
-        return;
+        printf("Invalid command!\n");
+        info->status = -1;
     }
     FILE *file = fopen(splitFile, "r");
     map x;
@@ -193,8 +151,8 @@ void *mapper(void *infor)
     int numLines;
     numLines = lineCounter(splitFile);
     if (numLines == -1)
-    { /*Error*/
-        return;
+    { 
+        info->status = -1;
     }
     map *aux_mapper = (map *)calloc(numLines, sizeof(map) * 20);
     if (file != NULL)
@@ -218,10 +176,87 @@ void *mapper(void *infor)
     else
     {
         printf("Error\n");
+        info->status = -1;
     }
 
     pthread_exit(NULL);
 }
+int createReducers(int nreducers, int nmappers)
+{
+    pthread_t thread1[nreducers];
+    int *assignments[nreducers];
+    int i = 0, k = 0, j = 0;
+    int rc, rj;
+    for (i = 0; i < nreducers; i++)
+        assignments[i] = (int *)calloc(20, sizeof(int) * 20);
+    i = 0;
+    while (i < nmappers)
+    {
+        assignments[j][k] = i;
+        assignments[j][k + 1] = -1;
+        i++;
+        j++;
+        if (j == nreducers)
+        {
+            j = 0;
+            k++;
+        }
+    }
+    for (i = 0; i < nreducers; i++)
+    {
+        rc = pthread_create(&thread1[i], NULL, reducer, (void *)assignments[i]);
+         if (rc)
+        {
+            perror("Error: ");
+            return -1;
+        }
+    }
+    for (i = 0; i < nreducers; i++)
+    {
+        rj = pthread_join(thread1[i], NULL);
+        if (rj)
+        {
+            perror("Error: ");
+            return -1;
+        }
+    }
+    return 0;
+}
+
+void *reducer(void *assig)
+{
+    int *assignments = assig;
+    int i = 0;
+    int index;
+    while (assignments[i] != -1)
+    {
+        index = assignments[i];
+        reducer_Answer += mappers[index][0].key - 1;
+        i++;
+    }
+    
+}
+
+int deleteSplit(int nmappers)
+{
+    int i;
+    char *aux = (char *)malloc(10);
+    strcpy(aux, "split0.txt");
+    for (i = 0; i < nmappers; i++)
+    {
+        int rc = remove(aux);
+        if (rc)
+        {
+            perror("The file couldnt be delete it");
+            free(aux);
+            return -1;
+        }
+        sprintf(aux, "split%d.txt", i + 1);
+    }
+    free(aux);
+    return 0;
+}
+
 struct command transform_command(char *command)
 {
     struct command com;
@@ -270,10 +305,11 @@ struct command transform_command(char *command)
     }
     return com;
 }
+
 int validate_command(int col, char *dif, int eq, int flag)
 {
     int validation = -1;
-    if (col < 0) /*Erro message columns cant be negative an 0 means its a letter*/
+    if (col <= 0 || col > 18) /*Erro message columns cant be negative an 0 means its a letter*/
         return validation;
     if (eq == 0 && flag == 0)
         return validation;

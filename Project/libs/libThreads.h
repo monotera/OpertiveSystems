@@ -22,12 +22,14 @@ typedef struct parameters
 {
     char *split;
     char *command;
+    int status;
 } parameters;
 
+int processControl(char *log, int lines, int nmappers, int nreducers, char *command);
 void intializer(int nmappers);
-void split(char *logfile, int lines, int nmappers); /*Create split files*/
+int split(char *logfile, int lines, int nmappers); /*Create split files*/
 int deleteSplit(int nmappers);
-void createMappers(int nmappers, char *command);
+int createMappers(int nmappers, char *command);
 struct command transform_command(char *command);
 int validate_command(int col, char *dif, int eq, int flag);
 void *mapper(void *info);
