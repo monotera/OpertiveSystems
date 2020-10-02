@@ -33,7 +33,7 @@ int validate_command(int col, char *dif, int eq, int flag);
 void *mapper(void *info);
 struct map line_checker(char *str, int col, int dif, int eq);
 int createReducers(int nreducers, int nmappers);
-int reducer(); /* creates output files */
+void *reducer(void *assignments); /* creates output files */
 void printAnswer(int total);
 int lineCounter(char *log);
 void clear(int nmappers);

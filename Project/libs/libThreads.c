@@ -102,24 +102,63 @@ void pruebaImprimir()
 
 void prueba(char *command, char *log, int lines, int nmappers)
 {
+    /*nmappers = 10;*/
     intializer(nmappers);
+
     split(log, lines, nmappers);
 
     createMappers(nmappers, command);
+    createReducers(4, 10);
+    pruebaImprimir();
     deleteSplit(nmappers);
-    /*pruebaImprimir();*/
-    int i;
-    for (i = 0; i < cont; i++)
-    {
-        reducer();
-    }
     printf("\n %d", reducer_Answer);
     clear(nmappers);
 }
+void *reducer(void *assig)
+{
+    int *assignments = assig;
+    int i = 0;
+    int index;
+    while (assignments[i] != -1)
+    {
+        index = assignments[i];
+        reducer_Answer += mappers[index][0].key - 1;
+        i++;
+    }
+    printf("\n");
+}
+int createReducers(int nreducers, int nmappers)
+{
+    pthread_t thread1[nreducers];
+    int *assignments[nreducers];
+    int i = 0, k = 0, j = 0;
+    for (i = 0; i < nreducers; i++)
+        assignments[i] = (int *)calloc(20, sizeof(int) * 20);
+    i = 0;
+    while (i < nmappers)
+    {
+        assignments[j][k] = i;
+        assignments[j][k + 1] = -1;
+        i++;
+        j++;
+        if (j == nreducers)
+        {
+            j = 0;
+            k++;
+        }
+    }
+    for (i = 0; i < nreducers; i++)
+    {
+        pthread_create(&thread1[i], NULL, reducer, (void *)assignments[i]);
+    }
+    for (i = 0; i < nreducers; i++)
+    {
+        pthread_join(thread1[i], NULL);
+    }
+}
 void createMappers(int nmappers, char *commandM)
 {
-    pthread_t thread1[nmappers];
-
+    pthread_t thread1;
     parameters par;
     int i = 0;
     par.command = (char *)calloc(20, sizeof(command));
@@ -128,8 +167,8 @@ void createMappers(int nmappers, char *commandM)
     {
         sprintf(par.split, "split%d.txt", i);
         strcpy(par.command, commandM);
-        pthread_create(&thread1[i], NULL, mapper, (void *)&par);
-        pthread_join(thread1[i], NULL);
+        pthread_create(&thread1, NULL, mapper, (void *)&par);
+        pthread_join(thread1, NULL);
     }
 
     free(par.command);
@@ -341,13 +380,6 @@ struct map line_checker(char *str, int col, int dif, int eq)
     return x;
 }
 
-int reducer()
-{
-    printf("\n => %d \n", mappers[reducer_index][0].key - 1);
-    reducer_Answer += mappers[reducer_index][0].key - 1;
-    reducer_index++;
-}
-
 int lineCounter(char *log)
 {
     char *command = (char *)calloc(20, sizeof(log) * 20);
@@ -364,6 +396,7 @@ int lineCounter(char *log)
     fscanf(fp1, "%d", &lines);
     fclose(fp1);
     remove("lineCounterAux.txt");
+    free(command);
     return lines;
 }
 
