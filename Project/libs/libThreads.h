@@ -18,11 +18,11 @@ typedef struct command
     int dif;
     int eq;
 } command;
-typedef struct par
+typedef struct parameters
 {
     char *split;
     char *command;
-} par;
+} parameters;
 
 void intializer(int nmappers);
 void split(char *logfile, int lines, int nmappers); /*Create split files*/

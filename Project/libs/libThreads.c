@@ -106,7 +106,7 @@ void prueba(char *command, char *log, int lines, int nmappers)
     split(log, lines, nmappers);
 
     createMappers(nmappers, command);
-    /*deleteSplit(nmappers);*/
+    deleteSplit(nmappers);
     /*pruebaImprimir();*/
     int i;
     for (i = 0; i < cont; i++)
@@ -119,31 +119,26 @@ void prueba(char *command, char *log, int lines, int nmappers)
 void createMappers(int nmappers, char *commandM)
 {
     pthread_t thread1[nmappers];
-    par x;
-    x.command = (char *)calloc(20, sizeof(char) * 20);
-    x.split = (char *)calloc(20, sizeof(char) * 20);
-    strcpy(x.split, "split0.txt");
-    strcpy(x.command, "5,<=,4");
-    par y;
-    y.command = (char *)calloc(20, sizeof(char) * 20);
-    y.split = (char *)calloc(20, sizeof(char) * 20);
-    strcpy(y.split, "split1.txt");
-    strcpy(y.command, "5,<=,4");
 
-    pthread_create(&thread1[0], NULL, mapper, (void *)&x);
-    pthread_join(thread1[0], NULL);
-    pthread_create(&thread1[1], NULL, mapper, (void *)&y);
-    pthread_join(thread1[1], NULL);
+    parameters par;
     int i = 0;
-    
-    
-    free(x.command);
-    free(x.split);
+    par.command = (char *)calloc(20, sizeof(command));
+    par.split = (char *)calloc(20, sizeof(char) * 20);
+    for (i = 0; i < nmappers; i++)
+    {
+        sprintf(par.split, "split%d.txt", i);
+        strcpy(par.command, commandM);
+        pthread_create(&thread1[i], NULL, mapper, (void *)&par);
+        pthread_join(thread1[i], NULL);
+    }
+
+    free(par.command);
+    free(par.split);
 }
 void *mapper(void *infor)
 {
-    struct par *info;
-    info = (par *)infor;
+    struct parameters *info;
+    info = (parameters *)infor;
     char *commandM = info->command;
     char *splitFile = info->split;
 
@@ -348,10 +343,9 @@ struct map line_checker(char *str, int col, int dif, int eq)
 
 int reducer()
 {
-    printf("\n => %d \n", mappers[reducer_index][0].key-1);
+    printf("\n => %d \n", mappers[reducer_index][0].key - 1);
     reducer_Answer += mappers[reducer_index][0].key - 1;
     reducer_index++;
-    
 }
 
 int lineCounter(char *log)
