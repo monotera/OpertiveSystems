@@ -42,10 +42,6 @@ void split(char *logfile, int lines, int nmappers)
             {
                 cont_lines = 0;
                 cont_splitFer++;
-                /*sprintf(index, "%d", cont_splitFer);
-                strcpy(aux, splitF);
-                strcat(aux, index);
-                strcat(aux, extension);*/
                 sprintf(aux, "split%d.txt", cont_splitFer);
                 flag = 1;
                 fprintf(writer, "%s", str);
