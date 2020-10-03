@@ -20,9 +20,12 @@ typedef struct command
 } command;
 typedef struct parameters
 {
-    char *split;
+    int id;
+    char * split;
     char *command;
     int status;
+    command com;
+    int numLines;
 } parameters;
 
 int processControl(char *log, int lines, int nmappers, int nreducers, char *command);
