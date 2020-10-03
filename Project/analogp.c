@@ -1,7 +1,7 @@
 #include "libs/libProcess.h"
 
 /*
-     compile file = gcc -std=c89 -o analogh analogh.c libs/libProcess.c
+     compile file = gcc -std=c89 -o analogp analogp.c libs/libProcess.c
 */
 
 int main(int argc, char *argv[])

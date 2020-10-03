@@ -12,14 +12,10 @@ void split(char *logfile, int lines, int nmappers)
     {
 
         char *str = (char *)malloc(chunk);
-        int cont_lines = 1, cont_splitFer = 0;
-        char *splitF = (char *)malloc(5);
-        char *extension = (char *)malloc(4);
+        int cont_lines = 1;
+        int cont_splitFer = 0;
         char *aux = (char *)malloc(10);
-        char *index = (char *)malloc(6);
-        strcpy(splitF, "split");
-        strcpy(extension, ".txt");
-        strcpy(aux, "split0.txt");
+        strcpy(aux,"split0.txt");
         FILE *writer;
         int flag = 1;
 
@@ -34,10 +30,7 @@ void split(char *logfile, int lines, int nmappers)
             {
                 cont_lines = 0;
                 cont_splitFer++;
-                sprintf(index, "%d", cont_splitFer);
-                strcpy(aux, splitF);
-                strcat(aux, index);
-                strcat(aux, extension);
+                sprintf(aux, "split%d.txt", cont_splitFer);
                 flag = 1;
                 fprintf(writer, "%s", str);
                 fclose(writer);
@@ -51,6 +44,9 @@ void split(char *logfile, int lines, int nmappers)
         }
         fclose(file);
         fclose(writer);
+
+        free(str);
+        free(aux);
     }
     else
     {
