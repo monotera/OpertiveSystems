@@ -10,8 +10,8 @@
 
 typedef struct map
 {
-    int key;
-    int value;
+    int *key;
+    int *value;
 } map;
 typedef struct command
 {
@@ -25,17 +25,25 @@ typedef struct parameters
     int status;
     command com;
     int numLines;
+    map m;
 } parameters;
+typedef struct pr
+{
+    int * assigments;
+    map * m;
+    int res;
+} pr;
+
 
 int processControl(char *log, int lines, int nmappers, int nreducers, char *command);
 void intializer(int nmappers);
 int split(char *logfile, int lines, int nmappers); /*Create split files*/
 int deleteSplit(int nmappers);
-int createMappers(int nmappers, char *command);
+map* createMappers(int nmappers, char *command);
 struct command transform_command(char *command);
 int validate_command(int col, char *dif, int eq, int flag);
 void *mapper(void *info);
-int createReducers(int nreducers, int nmappers);
+int createReducers(int nreducers, int nmappers,map *m);
 void *reducer(void *assignments); /* creates output files */
 int lineCounter(char *log);
 void clear(int nmappers);

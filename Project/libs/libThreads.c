@@ -1,7 +1,7 @@
 #include "libThreads.h"
 
 #define chunk 1024
-map **mappers;
+
 int cont;
 int reducer_Answer;
 
@@ -17,7 +17,11 @@ int processControl(char *log, int lines, int nmappers, int nreducers, char *comm
     {
         return status;
     }
-    status = createMappers(nmappers, command);
+    map *p = calloc(nmappers, sizeof(map));
+    p = createMappers(nmappers, command);
+    int i = 0;
+    int j = 0;
+    int g = 0;
     if (status)
     {
         return status;
@@ -27,21 +31,21 @@ int processControl(char *log, int lines, int nmappers, int nreducers, char *comm
     {
         return status;
     }
-    status = createReducers(nreducers, nmappers);
+    status = createReducers(nreducers, nmappers, p);
     if (status)
     {
         return status;
     }
-    clear(nmappers);
+    /*clear(nmappers);*/
 
-    gettimeofday(&end, NULL);
-    printf("Time of execution: %ld\n", ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec)));
-    return reducer_Answer;
+    /*gettimeofday(&end, NULL);
+    printf("Time of execution: %ld\n", ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec)));*/
+   /* return reducer_Answer;*/
 }
 
 void intializer(int nmappers)
 {
-    mappers = (map **)malloc(nmappers * (sizeof(map *)));
+    /*mappers = (map **)malloc(nmappers * (sizeof(map *)));*/
     cont = 0;
     reducer_Answer = 0;
 }
@@ -105,11 +109,11 @@ int split(char *logfile, int lines, int nmappers)
     return 0;
 }
 
-int createMappers(int nmappers, char *commandM)
+map *createMappers(int nmappers, char *commandM)
 {
     int rc, rj;
     pthread_t thread1[nmappers];
-
+    map m[nmappers];
     int i = 0;
     void *status;
     parameters par[nmappers];
@@ -125,10 +129,13 @@ int createMappers(int nmappers, char *commandM)
             return -1;
         }
         par[i].numLines = lineCounter(par[i].split);
+        par[i].m.key = calloc(par[i].numLines + 1, sizeof(int));
+        par[i].m.value = calloc(par[i].numLines + 1, sizeof(int));
+        /*par[i].m = m[i];*/
     }
 
     int j = 0;
-    for (j = 0; j <= nmappers - 1; j++)
+    for (j = 0; j < nmappers; j++)
     {
         rc = pthread_create(&thread1[j], NULL, mapper, (void *)&par[j]);
         if (rc)
@@ -142,7 +149,7 @@ int createMappers(int nmappers, char *commandM)
         }
     }
     int k = 0;
-    for (k = 0; k < nmappers - 1; k++)
+    for (k = 0; k < nmappers; k++)
     {
         rj = pthread_join(thread1[k], NULL);
         if (rj)
@@ -151,7 +158,35 @@ int createMappers(int nmappers, char *commandM)
             return -1;
         }
     }
-    return 0;
+    map *p = calloc(nmappers, sizeof(map));
+    int g = 0;
+
+    for (i = 0; i < nmappers; i++)
+    {
+        /*parameters p;*/
+        p[i] = par[i].m;
+        /*int index = p.m.key[0];
+        printf("====> %d\n",index);
+        for ( j = 1; j < index; j++)
+        {
+            printf("Key: %d, value: %d\n",p.m.key[j],p.m.value[j]);
+            g++;
+        }*/
+    }
+    /*for ( i = 0; i < nmappers; i++)
+    {
+        int index = p[i].key[0];
+        printf("====> %d\n",index);
+        for ( j = 1; j < index; j++)
+        {
+            printf("Key: %d, value: %d\n",p[i].key[j],p[i].value[j]);
+            g++;
+        }
+        
+    }*/
+
+    printf("%d ", g);
+    return p;
 }
 
 void *mapper(void *infor)
@@ -161,7 +196,6 @@ void *mapper(void *infor)
     char *splitFile = info->split;
     info->status = 0;
 
-    map x;
     FILE *file = fopen(splitFile, "r");
 
     int i = 1;
@@ -171,58 +205,62 @@ void *mapper(void *infor)
         char *str = (char *)malloc(chunk);
         int h = info->com.col;
         int buf[19];
+        int z = 1;
         while (fscanf(file, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
                       &buf[1], &buf[2], &buf[3], &buf[4], &buf[5], &buf[6],
                       &buf[7], &buf[8], &buf[9], &buf[10], &buf[11], &buf[12],
                       &buf[13], &buf[14], &buf[15], &buf[16], &buf[17], &buf[18]) != EOF)
         {
-            x.value = -163;
+
             switch (info->com.dif)
             {
             case 1:
                 if (buf[h] < info->com.eq)
                 {
-                    x.value = buf[h];
+                    info->m.key[z] = buf[1];
+                    info->m.value[z] = buf[h];
+                    z++;
                 }
                 break;
             case 2:
                 if (buf[h] > info->com.eq)
                 {
-                    x.value = buf[h];
+                    info->m.key[z] = buf[1];
+                    info->m.value[z] = buf[h];
+                    z++;
                 }
                 break;
             case 3:
                 if (buf[h] == info->com.eq)
                 {
-                    x.value = buf[h];
+                    info->m.key[z] = buf[1];
+                    info->m.value[z] = buf[h];
+                    z++;
                 }
                 break;
             case 4:
                 if (buf[h] >= info->com.eq)
                 {
-                    x.value = buf[h];
+                    info->m.key[z] = buf[1];
+                    info->m.value[z] = buf[h];
+                    z++;
                 }
 
                 break;
             case 5:
                 if (buf[h] <= info->com.eq)
                 {
-                    x.value = buf[h];
+                    info->m.key[z] = buf[1];
+                    info->m.value[z] = buf[h];
+                    z++;
                 }
                 break;
 
             default:
                 break;
             }
-            if (x.value != -163)
-            {
-                aux_mapper[i] = x;
-                i++;
-            }
         }
-        aux_mapper[0].key = i;
-        mappers[cont] = aux_mapper;
-        cont++;
+        info->m.key[0] = z;
     }
     else
     {
@@ -232,10 +270,13 @@ void *mapper(void *infor)
 
     pthread_exit(NULL);
 }
-int createReducers(int nreducers, int nmappers)
+int createReducers(int nreducers, int nmappers, map *p)
 {
+
+    pr par[nreducers];
     pthread_t thread1[nreducers];
     int *assignments[nreducers];
+
     int i = 0, k = 0, j = 0;
     int rc, rj;
     for (i = 0; i < nreducers; i++)
@@ -253,14 +294,20 @@ int createReducers(int nreducers, int nmappers)
             k++;
         }
     }
+
+    int suma = 0;
     for (i = 0; i < nreducers; i++)
     {
-        rc = pthread_create(&thread1[i], NULL, reducer, (void *)assignments[i]);
+        par[i].assigments = assignments[i];
+        par[i].m = p;
+        par[i].res = 0;
+        rc = pthread_create(&thread1[i], NULL, reducer, (void *)&par[i]);
         if (rc)
         {
             perror("Error: ");
             return -1;
         }
+        suma += par[i].res;
     }
     for (i = 0; i < nreducers; i++)
     {
@@ -271,20 +318,24 @@ int createReducers(int nreducers, int nmappers)
             return -1;
         }
     }
+    printf("\n  ===res===> %d", suma);
     return 0;
 }
 
 void *reducer(void *assig)
 {
-    int *assignments = assig;
+    struct pr *info;
+    info = (pr *)assig;
     int i = 0;
-    int index;
-    while (assignments[i] != -1)
+    map *p = info->m;
+    int j = 0;
+    while (info->assigments[i] != -1)
     {
-        index = assignments[i];
-        reducer_Answer += mappers[index][0].key - 1;
+        int indej = info->assigments[i];
+        info->res += p[indej].key[0] - 1;
         i++;
     }
+    printf("\n");
 }
 
 int deleteSplit(int nmappers)
@@ -406,7 +457,7 @@ int lineCounter(char *log)
     return lines;
 }
 
-void clear(int nmappers)
+/*void clear(int nmappers)
 {
     int i;
     for (i = 0; i < nmappers; i++)
@@ -414,4 +465,4 @@ void clear(int nmappers)
         free(mappers[i]);
     }
     free(mappers);
-}
+}*/
