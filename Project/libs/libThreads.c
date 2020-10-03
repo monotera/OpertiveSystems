@@ -7,6 +7,9 @@ int reducer_Answer;
 
 int processControl(char *log, int lines, int nmappers, int nreducers, char *command)
 {
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
+
     int status = 0;
     intializer(nmappers);
     status = split(log, lines, nmappers);
@@ -15,10 +18,10 @@ int processControl(char *log, int lines, int nmappers, int nreducers, char *comm
         return status;
     }
     status = createMappers(nmappers, command);
-    /*if (status)
+    if (status)
     {
         return status;
-    }*/
+    }
     status = deleteSplit(nmappers);
     if (status)
     {
@@ -30,7 +33,9 @@ int processControl(char *log, int lines, int nmappers, int nreducers, char *comm
         return status;
     }
     clear(nmappers);
-    printf("%d",reducer_Answer);
+
+    gettimeofday(&end, NULL);
+    printf("Time of execution: %ld\n", ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec)));
     return reducer_Answer;
 }
 
@@ -99,7 +104,7 @@ int split(char *logfile, int lines, int nmappers)
     }
     return 0;
 }
-int cona = 0;
+
 int createMappers(int nmappers, char *commandM)
 {
     int rc, rj;
@@ -107,28 +112,21 @@ int createMappers(int nmappers, char *commandM)
 
     int i = 0;
     void *status;
-    parameters par[10];
+    parameters par[nmappers];
     for (i = 0; i < nmappers; i++)
     {
-        par[i].id = i;
-        par[i].command = (char *)calloc(20, sizeof(command));
-        par[i].split = (char *)calloc(20, sizeof(char) * 20);
+        par[i].split = (char *)calloc(chunk, sizeof(char) * chunk);
         sprintf(par[i].split, "split%d.txt", i);
-        strcpy(par[i].command, commandM);
         par[i].com = transform_command(commandM);
         if (par[i].com.dif == -1)
         {
             printf("Invalid command!\n");
-            par[i].status = -1;
+            deleteSplit(nmappers);
             return -1;
         }
         par[i].numLines = lineCounter(par[i].split);
-        if (par[i].numLines == -1)
-        {
-            par[i].status = -1;
-            return -1;
-        }
     }
+
     int j = 0;
     for (j = 0; j <= nmappers - 1; j++)
     {
@@ -136,6 +134,10 @@ int createMappers(int nmappers, char *commandM)
         if (rc)
         {
             perror("Error: ");
+            return -1;
+        }
+        if (par[i].numLines == -1)
+        {
             return -1;
         }
     }
@@ -149,35 +151,32 @@ int createMappers(int nmappers, char *commandM)
             return -1;
         }
     }
-    printf("-----------------------------%d-------------------------", cona);
+    return 0;
 }
 
 void *mapper(void *infor)
 {
     struct parameters *info;
     info = (parameters *)infor;
-    char *commandM = info->command;
     char *splitFile = info->split;
     info->status = 0;
-    /*command *com = info->command;*/
-    printf("/n%s %s %d : %d %d %d : %d\n", commandM, splitFile, info->status, info->com.col, info->com.dif, info->com.eq, info->numLines);
+
     map x;
     FILE *file = fopen(splitFile, "r");
 
     int i = 1;
-    map *aux_mapper = (map *)calloc(info->numLines, sizeof(map) * 20);
+    map *aux_mapper = (map *)calloc(info->numLines, sizeof(map) * info->numLines);
     if (file != NULL)
     {
-        printf("entre %d\n", info->id);
         char *str = (char *)malloc(chunk);
-        int y = 0, h = 4;
-        int buf[18];
+        int h = info->com.col;
+        int buf[19];
         while (fscanf(file, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
-                      &buf[0], &buf[1], &buf[2], &buf[3], &buf[4], &buf[5],
-                      &buf[6], &buf[7], &buf[8], &buf[9], &buf[10], &buf[11],
-                      &buf[12], &buf[13], &buf[14], &buf[15], &buf[16], &buf[17]) != EOF)
+                      &buf[1], &buf[2], &buf[3], &buf[4], &buf[5], &buf[6],
+                      &buf[7], &buf[8], &buf[9], &buf[10], &buf[11], &buf[12],
+                      &buf[13], &buf[14], &buf[15], &buf[16], &buf[17], &buf[18]) != EOF)
         {
-            printf("%d %d\n", buf[y], buf[h]);
+            x.value = -163;
             switch (info->com.dif)
             {
             case 1:
@@ -185,19 +184,11 @@ void *mapper(void *infor)
                 {
                     x.value = buf[h];
                 }
-                else
-                {
-                    x.value = -163;
-                }
                 break;
             case 2:
                 if (buf[h] > info->com.eq)
                 {
                     x.value = buf[h];
-                }
-                else
-                {
-                    x.value = -163;
                 }
                 break;
             case 3:
@@ -205,31 +196,18 @@ void *mapper(void *infor)
                 {
                     x.value = buf[h];
                 }
-                else
-                {
-                    x.value = -163;
-                }
                 break;
             case 4:
                 if (buf[h] >= info->com.eq)
                 {
-                    printf("yup\n");
-                    cona++;
                     x.value = buf[h];
                 }
-                else
-                {
-                    x.value = -163;
-                }
+
                 break;
             case 5:
                 if (buf[h] <= info->com.eq)
                 {
                     x.value = buf[h];
-                }
-                else
-                {
-                    x.value = -163;
                 }
                 break;
 
@@ -245,16 +223,6 @@ void *mapper(void *infor)
         aux_mapper[0].key = i;
         mappers[cont] = aux_mapper;
         cont++;
-
-        /*while (fgets(str, chunk, file))
-        {
-            x = line_checker(str, info->com.col, info->com.dif, info->com.eq);
-            /*
-        }*/
-
-        /*aux_mapper[0].key = i;
-        mappers[cont] = aux_mapper;
-        cont++;*/
     }
     else
     {
@@ -263,89 +231,6 @@ void *mapper(void *infor)
     }
 
     pthread_exit(NULL);
-}
-struct map line_checker(char *str, int col, int dif, int eq)
-{
-
-    /*map x;
-    char *key = (char *)malloc(strlen(str));
-    char *value = (char *)malloc(strlen(str));
-    strcpy(key, str);
-    strcpy(value, str);
-    const char s[2] = " ";
-    strtok(key, s);
-    x.key = atoi(key);
-    char *token;
-    token = strtok(value, s);
-    int i;
-    
-    for (i = 0; i < col - 1 && token != NULL; i++)
-    {
-        token = strtok(NULL, s);
-    }
-    printf("%s =======> %d\n",token,col);
-    
-    int val;
-    val = atoi(token);*/
-
-    /*switch (dif)
-    {
-    case 1:
-        if (val < eq)
-        {
-            x.value = val;
-        }
-        else
-        {
-            x.value = -163;
-        }
-        break;
-    case 2:
-        if (val > eq)
-        {
-            x.value = val;
-        }
-        else
-        {
-            x.value = -163;
-        }
-        break;
-    case 3:
-        if (val == eq)
-        {
-            x.value = val;
-        }
-        else
-        {
-            x.value = -163;
-        }
-        break;
-    case 4:
-        if (val >= eq)
-        {
-            x.value = val;
-        }
-        else
-        {
-            x.value = -163;
-        }
-        break;
-    case 5:
-        if (val <= eq)
-        {
-            x.value = val;
-        }
-        else
-        {
-            x.value = -163;
-        }
-        break;
-
-    default:
-        break;
-    }
-
-    return x;*/
 }
 int createReducers(int nreducers, int nmappers)
 {

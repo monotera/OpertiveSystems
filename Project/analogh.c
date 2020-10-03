@@ -20,6 +20,7 @@ int main(int argc, char *argv[])
         switch (option)
         {
         case 1:
+
             printf("Hello, please insert your command line (column,sign,value)\n$");
             char *command;
             scanf("%s", command);
@@ -34,11 +35,9 @@ int main(int argc, char *argv[])
             {
                 int output;
                 output = processControl(argv[1], lines, nmappers, nreducers, command);
-                /*output = processControl("test2", 31447, 10, 4, "5,>=,1");*/
-                /*output = processControl("test1", 534, 10, 4, "5,>=,1");*/
                 if (output >= 0)
                 {
-                    printf("====> %d\n", output);
+                    printf("there are %d records that meet the condition\n", output);
                 }
             }
             break;

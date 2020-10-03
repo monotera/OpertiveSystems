@@ -3,9 +3,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/time.h>
 #include <pthread.h>
 #include <string.h>
+#include <sys/time.h>
+#include <time.h>
 
 typedef struct map
 {
@@ -20,9 +21,7 @@ typedef struct command
 } command;
 typedef struct parameters
 {
-    int id;
-    char * split;
-    char *command;
+    char *split;
     int status;
     command com;
     int numLines;
@@ -36,10 +35,8 @@ int createMappers(int nmappers, char *command);
 struct command transform_command(char *command);
 int validate_command(int col, char *dif, int eq, int flag);
 void *mapper(void *info);
-struct map line_checker(char *str, int col, int dif, int eq);
 int createReducers(int nreducers, int nmappers);
 void *reducer(void *assignments); /* creates output files */
-void printAnswer(int total);
 int lineCounter(char *log);
 void clear(int nmappers);
 
