@@ -69,8 +69,11 @@ int processControl(char *log, int lines, int nmappers, int nreducers, char *comm
 int split(char *logfile, int lines, int nmappers)
 {
 
-    FILE *file = fopen(logfile, "r");
-    int sub_lines = lines / nmappers;
+    FILE *file;
+    int sub_lines, cont_lines, cont_splitFer, flag;
+    char *str, *aux;
+    file = fopen(logfile, "r");
+    sub_lines = lines / nmappers;
 
     if (file != NULL && sub_lines > 0)
     {
