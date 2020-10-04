@@ -2,8 +2,7 @@
 
 #define chunk 1024
 
-int cont;
-int reducer_Answer;
+int cont = 0;
 
 int processControl(char *log, int lines, int nmappers, int nreducers, char *command)
 {
@@ -11,17 +10,20 @@ int processControl(char *log, int lines, int nmappers, int nreducers, char *comm
     gettimeofday(&start, NULL);
 
     int status = 0;
-    intializer(nmappers);
     status = split(log, lines, nmappers);
     if (status)
     {
         return status;
     }
-    map *p = calloc(nmappers, sizeof(map));
-    p = createMappers(nmappers, command);
-    int i = 0;
-    int j = 0;
-    int g = 0;
+    map *mapper = calloc(nmappers, sizeof(map));
+    struct command com = transform_command(command);
+    if (com.dif == -1)
+    {
+        printf("Invalid command\n");
+        deleteSplit(nmappers);
+        return -1;
+    }
+    status = createMappers(nmappers, com, mapper);
     if (status)
     {
         return status;
@@ -31,23 +33,15 @@ int processControl(char *log, int lines, int nmappers, int nreducers, char *comm
     {
         return status;
     }
-    status = createReducers(nreducers, nmappers, p);
-    if (status)
+    status = createReducers(nreducers, nmappers, mapper);
+    if (status == -1)
     {
         return status;
     }
-    /*clear(nmappers);*/
 
-    /*gettimeofday(&end, NULL);
-    printf("Time of execution: %ld\n", ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec)));*/
-   /* return reducer_Answer;*/
-}
-
-void intializer(int nmappers)
-{
-    /*mappers = (map **)malloc(nmappers * (sizeof(map *)));*/
-    cont = 0;
-    reducer_Answer = 0;
+    gettimeofday(&end, NULL);
+    printf("Time of execution: %ld\n", ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec)));
+    return status;
 }
 
 int split(char *logfile, int lines, int nmappers)
@@ -109,7 +103,7 @@ int split(char *logfile, int lines, int nmappers)
     return 0;
 }
 
-map *createMappers(int nmappers, char *commandM)
+int createMappers(int nmappers, command commandM, map *mapperStruct)
 {
     int rc, rj;
     pthread_t thread1[nmappers];
@@ -117,21 +111,15 @@ map *createMappers(int nmappers, char *commandM)
     int i = 0;
     void *status;
     parameters par[nmappers];
+
     for (i = 0; i < nmappers; i++)
     {
         par[i].split = (char *)calloc(chunk, sizeof(char) * chunk);
         sprintf(par[i].split, "split%d.txt", i);
-        par[i].com = transform_command(commandM);
-        if (par[i].com.dif == -1)
-        {
-            printf("Invalid command!\n");
-            deleteSplit(nmappers);
-            return -1;
-        }
+        par[i].com = commandM;
         par[i].numLines = lineCounter(par[i].split);
-        par[i].m.key = calloc(par[i].numLines + 1, sizeof(int));
-        par[i].m.value = calloc(par[i].numLines + 1, sizeof(int));
-        /*par[i].m = m[i];*/
+        par[i].mapper.key = calloc(par[i].numLines + 1, sizeof(int));
+        par[i].mapper.value = calloc(par[i].numLines + 1, sizeof(int));
     }
 
     int j = 0;
@@ -158,35 +146,11 @@ map *createMappers(int nmappers, char *commandM)
             return -1;
         }
     }
-    map *p = calloc(nmappers, sizeof(map));
-    int g = 0;
-
     for (i = 0; i < nmappers; i++)
     {
-        /*parameters p;*/
-        p[i] = par[i].m;
-        /*int index = p.m.key[0];
-        printf("====> %d\n",index);
-        for ( j = 1; j < index; j++)
-        {
-            printf("Key: %d, value: %d\n",p.m.key[j],p.m.value[j]);
-            g++;
-        }*/
+        mapperStruct[i] = par[i].mapper;
     }
-    /*for ( i = 0; i < nmappers; i++)
-    {
-        int index = p[i].key[0];
-        printf("====> %d\n",index);
-        for ( j = 1; j < index; j++)
-        {
-            printf("Key: %d, value: %d\n",p[i].key[j],p[i].value[j]);
-            g++;
-        }
-        
-    }*/
-
-    printf("%d ", g);
-    return p;
+    return 0;
 }
 
 void *mapper(void *infor)
@@ -199,7 +163,7 @@ void *mapper(void *infor)
     FILE *file = fopen(splitFile, "r");
 
     int i = 1;
-    map *aux_mapper = (map *)calloc(info->numLines, sizeof(map) * info->numLines);
+    map *aux_mapper = (map *)calloc(info->numLines, sizeof(map));
     if (file != NULL)
     {
         char *str = (char *)malloc(chunk);
@@ -217,32 +181,32 @@ void *mapper(void *infor)
             case 1:
                 if (buf[h] < info->com.eq)
                 {
-                    info->m.key[z] = buf[1];
-                    info->m.value[z] = buf[h];
+                    info->mapper.key[z] = buf[1];
+                    info->mapper.value[z] = buf[h];
                     z++;
                 }
                 break;
             case 2:
                 if (buf[h] > info->com.eq)
                 {
-                    info->m.key[z] = buf[1];
-                    info->m.value[z] = buf[h];
+                    info->mapper.key[z] = buf[1];
+                    info->mapper.value[z] = buf[h];
                     z++;
                 }
                 break;
             case 3:
                 if (buf[h] == info->com.eq)
                 {
-                    info->m.key[z] = buf[1];
-                    info->m.value[z] = buf[h];
+                    info->mapper.key[z] = buf[1];
+                    info->mapper.value[z] = buf[h];
                     z++;
                 }
                 break;
             case 4:
                 if (buf[h] >= info->com.eq)
                 {
-                    info->m.key[z] = buf[1];
-                    info->m.value[z] = buf[h];
+                    info->mapper.key[z] = buf[1];
+                    info->mapper.value[z] = buf[h];
                     z++;
                 }
 
@@ -250,8 +214,8 @@ void *mapper(void *infor)
             case 5:
                 if (buf[h] <= info->com.eq)
                 {
-                    info->m.key[z] = buf[1];
-                    info->m.value[z] = buf[h];
+                    info->mapper.key[z] = buf[1];
+                    info->mapper.value[z] = buf[h];
                     z++;
                 }
                 break;
@@ -260,17 +224,18 @@ void *mapper(void *infor)
                 break;
             }
         }
-        info->m.key[0] = z;
+        info->mapper.key[0] = z;
+        fclose(file);
     }
     else
     {
-        printf("Error\n");
+        printf("Error: The file could not be open\n");
         info->status = -1;
     }
 
     pthread_exit(NULL);
 }
-int createReducers(int nreducers, int nmappers, map *p)
+int createReducers(int nreducers, int nmappers, map *mapper)
 {
 
     pr par[nreducers];
@@ -299,7 +264,7 @@ int createReducers(int nreducers, int nmappers, map *p)
     for (i = 0; i < nreducers; i++)
     {
         par[i].assigments = assignments[i];
-        par[i].m = p;
+        par[i].mapper = mapper;
         par[i].res = 0;
         rc = pthread_create(&thread1[i], NULL, reducer, (void *)&par[i]);
         if (rc)
@@ -307,7 +272,6 @@ int createReducers(int nreducers, int nmappers, map *p)
             perror("Error: ");
             return -1;
         }
-        suma += par[i].res;
     }
     for (i = 0; i < nreducers; i++)
     {
@@ -318,8 +282,11 @@ int createReducers(int nreducers, int nmappers, map *p)
             return -1;
         }
     }
-    printf("\n  ===res===> %d", suma);
-    return 0;
+    for (i = 0; i < nreducers; i++)
+    {
+        suma += par[i].res;
+    }
+    return suma;
 }
 
 void *reducer(void *assig)
@@ -327,15 +294,14 @@ void *reducer(void *assig)
     struct pr *info;
     info = (pr *)assig;
     int i = 0;
-    map *p = info->m;
+    map *mapper = info->mapper;
     int j = 0;
     while (info->assigments[i] != -1)
     {
         int indej = info->assigments[i];
-        info->res += p[indej].key[0] - 1;
+        info->res += mapper[indej].key[0] - 1;
         i++;
     }
-    printf("\n");
 }
 
 int deleteSplit(int nmappers)
@@ -410,7 +376,7 @@ struct command transform_command(char *command)
 int validate_command(int col, char *dif, int eq, int flag)
 {
     int validation = -1;
-    if (col <= 0 || col > 18) /*Erro message columns cant be negative an 0 means its a letter*/
+    if (col <= 0 || col > 18) /*Error message columns cant be negative an 0 means its a letter*/
         return validation;
     if (eq == 0 && flag == 0)
         return validation;
@@ -456,13 +422,3 @@ int lineCounter(char *log)
     free(command);
     return lines;
 }
-
-/*void clear(int nmappers)
-{
-    int i;
-    for (i = 0; i < nmappers; i++)
-    {
-        free(mappers[i]);
-    }
-    free(mappers);
-}*/

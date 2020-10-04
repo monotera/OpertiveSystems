@@ -25,27 +25,24 @@ typedef struct parameters
     int status;
     command com;
     int numLines;
-    map m;
+    map mapper;
 } parameters;
 typedef struct pr
 {
-    int * assigments;
-    map * m;
+    int *assigments;
+    map *mapper;
     int res;
 } pr;
 
-
 int processControl(char *log, int lines, int nmappers, int nreducers, char *command);
-void intializer(int nmappers);
 int split(char *logfile, int lines, int nmappers); /*Create split files*/
 int deleteSplit(int nmappers);
-map* createMappers(int nmappers, char *command);
+int createMappers(int nmappers, command commandM, map * mapperStruct);
 struct command transform_command(char *command);
 int validate_command(int col, char *dif, int eq, int flag);
 void *mapper(void *info);
-int createReducers(int nreducers, int nmappers,map *m);
+int createReducers(int nreducers, int nmappers, map *mapper);
 void *reducer(void *assignments); /* creates output files */
 int lineCounter(char *log);
-void clear(int nmappers);
 
 #endif

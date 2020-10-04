@@ -6,11 +6,11 @@
 
 int main(int argc, char *argv[])
 {
-    /*if (argc != 5)
+    if (argc != 5)
     {
         printf("Error : wrong number of parameters\n");
         exit(-1);
-    }*/
+    }
     while (1)
     {
         int option;
@@ -21,7 +21,7 @@ int main(int argc, char *argv[])
         {
         case 1:
 
-            /*printf("Hello, please insert your command line (column,sign,value)\n$");
+            printf("Hello, please insert your command line (column,sign,value)\n$");
             char *command;
             scanf("%s", command);
             int lines = atoi(argv[2]);
@@ -32,38 +32,22 @@ int main(int argc, char *argv[])
                 printf("Invalid number of reducers");
             }
             else
-            {*/
-            printf("Empezo");
-            int output;
-            /*output = processControl(argv[1], lines, nmappers, nreducers, command);*/
-            output = processControl("test1", 534, 10, 4, "5,<=,1");
-            if (output >= 0)
             {
-                printf("there are %d records that meet the condition\n", output);
+                int output;
+                output = processControl(argv[1], lines, nmappers, nreducers, command);
+                if (output >= 0)
+                {
+                    printf("there are %d records that meet the condition\n", output);
+                }
+                break;
+            case 2:
+                printf("Good bye world\n");
+                exit(0);
+                break;
+            default:
+                printf("Error: Invalid selection\n");
+                break;
             }
-
-            /*output = processControl("test1", 534, 10, 4, "5,>=,1");*/
-            if (output >= 0)
-            {
-                printf("there are %d records that meet the condition\n", output);
-            }
-   
-            output = processControl("test2", 31447, 10, 4, "5,>=,1");
-            /*output = processControl("test2", 31447, 10, 4, "5,<=,1");*/
-            if (output >= 0)
-            {
-                printf("there are %d records that meet the condition\n", output);
-            }
-         
-            /*}*/
-            break;
-        case 2:
-            printf("Good bye world\n");
-            exit(0);
-            break;
-        default:
-            printf("Error: Invalid selection\n");
-            break;
         }
     }
 }
