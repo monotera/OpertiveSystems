@@ -7,7 +7,9 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
-#include <math.h>
+
+#include <time.h>
+#include <sys/time.h>
 
 typedef struct map
 {
@@ -23,14 +25,16 @@ typedef struct command
 } command;
 
 int processControl(char *log, int lines, int nmappers, int nreducers, char *command, int inter);
-void split(char *logfile, int lines, int nmappers); /*Create split files*/
-void createMappers(int nmappers, char *command, int intermediate);
-void mapper(char *split, char *command, int iter, int intermediate);
+int split(char *logfile, int lines, int nmappers); /*Create split files*/
+int createMappers(int nmappers, command com, int intermediate);
+int mapper(char *split, command com, int iter, int intermediate);
+struct command transform_command(char *command);
+int validate_command(int col, char *dif, int eq, int flag);
 void createBuf(map *mapper);
-void createReducers(int nreducers, int nmappers);
+int createReducers(int nreducers, int nmappers);
 int reducer(int intermediate,int * assigments, int index); /* creates output files*/
 int printAnswer(int nreducers);
-void clear();
+int clear();
 
 
 #endif
