@@ -2,7 +2,6 @@
 
 /*
     compile file = gcc -pthread -std=c89  -o  analogh analogh.c libs/libThreads.c
-
 */
 int main(int argc, char *argv[])
 {
