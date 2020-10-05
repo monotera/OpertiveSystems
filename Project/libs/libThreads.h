@@ -1,11 +1,10 @@
 /**
- * Nombre: libProcess.h
- * Sistemas operativos: primera entrega
- * Autores: Carlos Andres Erazo Garzon
+ * Name: libThreads.h
+ * Operative systems first project
+ * Authors: Carlos Andres Erazo Garzon
  *          Nelson Alejandro Mosquera Barrera
  *          Gabriel Andres Niño Carvajal
- * Fecha: 4/oct/2020
- * Descripcion: Funciones que corresponden a la implementación con procesos.
+ * Date: 4/oct/2020
  **/
 
 #ifndef _LIBTHREADS_H_
@@ -46,92 +45,100 @@ typedef struct pr
 
 /**
  * Name: processControl,
- * Inputs: Nombre del documento, Cantidad de lineas del documento, Cantidad de mappers, Cantidad de reducers, Comando de busqueda.
- * Outputs: Entero que verifica el funcionamiento de la función.
- * Description: Funcion que gestiona el correcto funcionamiento del programa, asimismo registra el tiempo que demora la ejecucion.
+ * Inputs: Name of the document, Number of lines in the document, Number of mappers, Number of reducers, Search command.
+ * Outputs: Integer that verifies the operation of the function.
+ * Description: Function that manages the correct operation of the program, also records the time it takes to execute.
  * */
 
 int processControl(char *log, int lines, int nmappers, int nreducers, char *command);
 
 /**
  * Name: split.
- * Inputs: Nombre del documento, Cantidad de lineas del documento, Cantidad de mappers.
- * Outputs: Entero que verifica el funcionamiento de la función.
- * Description: Divide el documento principal segun la cantidad de mappers.
+ * Inputs: Name of the document, Number of lines in the document, Number of mappers.
+ * Outputs: Integer that verifies the operation of the function.
+ * Description: Divides the main document according to the number of mappers.
  * */
 
 int split(char *logfile, int lines, int nmappers); /*Create split files*/
 
 /**
  * Name: Delete split.
- * Inputs: Numero de mappers.
- * Outputs: Entero que verifica el funcionamiento de la función.
- * Description: Se borran los archivos creados por la funcion split.
+ * Inputs: Number of mappers.
+ * Outputs: Integer that verifies the operation of the function.
+ * Description: The files created by the split function are deleted.
  * */
 
 int deleteSplit(int nmappers);
 
 /**
  * Name: CreateMappers
- * Inputs: Cantidad de mappers, Comando de busqueda, Mapa para realizar la busqueda.
- * Outputs: Entero que verifica el funcionamiento de la función.
- * Description: Crea los mappers y los asigna al fragmento del documento.
+ * Inputs: Number of mappers, Search command, Map to perform the search.
+ * Outputs: Integer that verifies the operation of the function.
+ * Description: Creates the mappers and assigns them to the document fragment.
  * */
 
 int createMappers(int nmappers, command commandM, map *mapperStruct);
 
 /**
  * Name: Transform command.
- * Inputs: Comando de busqueda.
- * Outputs: Comando de busqueda con el que se pueden realizar operaciones.
- * Description: A partir de la entrada del usuario que indica los parametros a buscar en los registros, la funcion reconoce cada parte del comando de busqueda.
+ * Inputs: Search command.
+ * Outputs: Search command with which operations can be performed.
+ * Description: From the user input that indicates the parameters to be searched in the registers, the function recognizes each part of the search command.
  * */
 
 struct command transform_command(char *command);
 
 /**
  * Name: Validate command.
- * Inputs: Columna del documento, Signo o condicional de la busqueda, Parametro, Bandera.
- * Outputs: Entero que verifica el funcionamiento de la función.
- * Description: Se validan los campos del comando de busqueda.
+ * Inputs: Document column, Search sign or conditional, Parameter, Flag.
+ * Outputs: Integer that verifies the operation of the function.
+ * Description: The fields of the search command are validated.
  * */
 
 int validate_command(int col, char *dif, int eq, int flag);
 
 /**
  * Name: Mapper.
- * Inputs: Informacion necesaria para el tratamiento de los datos.
- * Outputs: Ninguna
- * Description: El mapper comienza la busqueda de aciertos con respecto al comando establecido.
+ * Inputs: Information necessary for data processing.
+ * Outputs: None
+ * Description: The mapper begins the search for matches according to the established command, saving them in the array of mappers.
  * */
 
 void *mapper(void *info);
 
 /**
  * Name: Create reducers.
- * Inputs: Numero de reducers, Numero de mappers, mapa de resultado.
- * Outputs: Entero que verifica el funcionamiento de la función.
- * Description: Crea los reducers y los asigna al archivo buff correspondiente.
+ * Inputs: Number of reducers, Number of mappers, result map.
+ * Outputs: Integer that verifies the operation of the function.
+ * Description: Creates the reducers and assigns them to the corresponding buff file.
  * */
 
 int createReducers(int nreducers, int nmappers, map *mapper);
 
 /**
  * Name: Reducer.
- * Inputs: Información necesara para el tratamiento de los datos.
- * Outputs: Ninguno.
- * Description: Se cuentan el numero de aciertos de los documentos buff asignados.
+ * Inputs: Information necessary for data processing.
+ * Outputs: None.
+ * Description: The number of hits of the assigned buff documents are counted.
  * */
 
 void *reducer(void *assignments); /* creates output files */
 
 /**
  * Name: Line counter.
- * Inputs: Nombre del archivo.
- * Outputs: Numero de lineas que tiene el archivo.
- * Description: Cuenta el numero de lineas del archivo.
+ * Inputs: File name.
+ * Outputs: Number of lines that the file has.
+ * Description: Counts the number of lines in the file.
  * */
 
 int lineCounter(char *log);
+
+/**
+ * Name: validationParameters.
+ * Inputs: File name, number of lines entered by parameters, number of mappers, number of reducers.
+ * Outputs: 0 if the parameters are valid, -1 if they are invalid.
+ * Description: Validates number of parameters.
+ * */
+int validationParameters(char *log, int lines, int nmappers, int nreducers);
 
 #endif

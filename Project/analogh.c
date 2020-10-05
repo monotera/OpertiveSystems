@@ -1,14 +1,14 @@
 /**
- * Nombre: Analogh.c (main)
- * Sistemas operativos: primera entrega
- * Autores: Carlos Andres Erazo Garzon
- *          Nelson Alejandro Mosquera Barrera
- *          Gabriel Andres Niño Carvajal
- * Fecha: 4/oct/2020
- * Descripcion: Documento principal para la implementacion de hilos, corresponde
- *              a la interfaz a la que tiene acceso el ususario junto con los 
- *              llamados a las funciones necesarias.
- **/
+* Name: Analogh.c (main)
+* Operating Systems - First Release
+* Authors: Carlos Andres Erazo Garzon
+*          Nelson Alejandro Mosquera Barrera
+*          Gabriel Andres Niño Carvajal
+* Date: 4 / Oct / 2020
+* Description: Main document for the implementation of threads, 
+*              it corresponds to the interface to which the user 
+*              has access together with  the calls to the necessary functions.
+**/
 
 #include "libs/libThreads.h"
 
@@ -27,10 +27,23 @@ int main(int argc, char *argv[])
       perror("Error : wrong number of parameters\n");
       exit(-1);
    }
+   int lines = 0;
+   int nmappers = 0;
+   int nreducers = 0;
+   int status;
+   lines = atoi(argv[2]);
+   nmappers = atoi(argv[3]);
+   nreducers = atoi(argv[4]);
+   status = validationParameters(argv[1], lines, nmappers, nreducers);
+   if (status != 0)
+   {
+      printf("Good bye!");
+      exit(-1);
+   }
    while (ONE)
    {
       int option = 0;
-      printf("Choose between option 1 or 2 using the keyboard\n");
+      printf("\nChoose between option 1 or 2 using the keyboard\n");
       printf("1. Make a query\n");
       printf("2. log out\n");
       scanf("%d", &option);
@@ -43,26 +56,14 @@ int main(int argc, char *argv[])
          printf("\"Value\" must be a number\n");
          printf("$");
          char *command;
-         int lines = 0;
-         int nmappers = 0;
-         int nreducers = 0;
          scanf("%s", command);
-         lines = atoi(argv[2]);
-         nmappers = atoi(argv[3]);
-         nreducers = atoi(argv[4]);
-         if (nreducers == ZERO)
+         int output = -1;
+         output = processControl(argv[1], lines, nmappers, nreducers, command);
+         if (output >= ZERO)
          {
-            perror("Invalid number of reducers");
+            printf("there are %d records that meet the condition\n", output);
          }
-         else
-         {
-            int output = -1;
-            output = processControl(argv[1], lines, nmappers, nreducers, command);
-            if (output >= ZERO)
-            {
-               printf("there are %d records that meet the condition\n", output);
-            }
-         }
+
          break;
       case 2:
          printf("Good bye world\n");
@@ -70,7 +71,7 @@ int main(int argc, char *argv[])
          break;
       default:
          perror("Error: Invalid selection\n");
-         printf("%s %d", "The registered selection was: ", option);
+         printf("%s %d", "The registered selection was: \n", option);
          break;
       }
    }

@@ -1,15 +1,14 @@
 /**
- * Nombre: Analogp.c (main)
- * Sistemas operativos: primera entrega
- * Autores: Carlos Andres Erazo Garzon
- *          Nelson Alejandro Mosquera Barrera
- *          Gabriel Andres Niño Carvajal
- * Fecha: 4/oct/2020
- * Descripcion: Documento principal para la implementacion de procesos, corresponde
- *              a la interfaz a la que tiene acceso el ususario junto con los 
- *              llamados a las funciones necesarias.
- **/
-
+* Name: Analogp.c (main)
+* Operating Systems - First Release
+* Authors: Carlos Andres Erazo Garzon
+*          Nelson Alejandro Mosquera Barrera
+*          Gabriel Andres Niño Carvajal
+* Date: 4 / Oct / 2020
+* Description: Main document for the implementation of threads, 
+*              it corresponds to the interface to which the user 
+*              has access together with  the calls to the necessary functions.
+**/
 #include "libs/libProcess.h"
 
 #define ONE 1
@@ -27,6 +26,21 @@ int main(int argc, char *argv[])
       perror("Error : wrong number of parameters\n");
       exit(-1);
    }
+   int lines = 0;
+   int nmappers = 0;
+   int nreducers = 0;
+   int inter = 0;
+   int status = -1;
+   lines = atoi(argv[2]);
+   nmappers = atoi(argv[3]);
+   nreducers = atoi(argv[4]);
+   inter = atoi(argv[5]);
+   status = validationParameters(argv[1], lines, nmappers, nreducers, inter);
+   if (status != 0)
+   {
+      printf("\nGood bye!\n");
+      exit(-1);
+   }
    while (ONE)
    {
       int option = 0;
@@ -37,20 +51,13 @@ int main(int argc, char *argv[])
       switch (option)
       {
       case 1:
-         printf("Hello!, Checking for files deletions!\n");
-         int lines = 0;
-         int nmappers = 0;
-         int nreducers = 0;
-         int inter = 0;
-         lines = atoi(argv[2]);
-         nmappers = atoi(argv[3]);
-         nreducers = atoi(argv[4]);
-         inter = atoi(argv[5]);
          if (inter == ONE)
          {
+            printf("\nHello!, Checking for files deletions!\n");
             clear(nmappers, nreducers);
+            printf("Done!\n");
          }
-         printf("Done!, please insert your command line (column,sign,value)\n");
+         printf("Please insert your command line (column,sign,value)\n");
          printf("\"Column\" must be a number\n");
          printf("\"Sign\" must be an operator between: \"=\", \"<\", \">\", \"<=\", \">= \"\n");
          printf("\"Value\" must be a number\n");
@@ -58,25 +65,11 @@ int main(int argc, char *argv[])
          char *command;
          scanf("%s", command);
 
-         if (nreducers == ZERO)
+         int output = -1;
+         output = processControl(argv[1], lines, nmappers, nreducers, command, inter);
+         if (output >= ZERO)
          {
-            perror("Invalid number of reducers");
-         }
-         if (inter > ONE || inter < ZERO)
-         {
-            perror("Error: inter must be 0 or 1");
-            exit - 1;
-         }
-         else
-         {
-
-            int output = -1;
-            output = processControl(argv[1], lines, nmappers, nreducers, command, inter);
-            /*output = processControl("test1.txt", 534, 10, 3, "5,>=,1", 0);*/
-            if (output >= ZERO)
-            {
-               printf("there are %d records that meet the condition\n", output);
-            }
+            printf("there are %d records that meet the condition\n", output);
          }
          break;
       case 2:

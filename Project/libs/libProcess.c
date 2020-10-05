@@ -1,11 +1,11 @@
 /**
- * Nombre: libProcess.c
- * Sistemas operativos: primera entrega
- * Autores: Carlos Andres Erazo Garzon
+ * Name: libProcess.c
+ * Operative systems first project
+ * Authors: Carlos Andres Erazo Garzon
  *          Nelson Alejandro Mosquera Barrera
  *          Gabriel Andres Niño Carvajal
- * Fecha: 4/oct/2020
- * Descripcion: Implementación de la libreria "libProcess.h".
+ * Date: 4/oct/2020
+ * Description: Implementation of the "libProcess.h" library.
  **/
 
 #include "libProcess.h"
@@ -38,7 +38,7 @@ int processControl(char *log, int lines, int nmappers, int nreducers, char *comm
       deleteFiles(nmappers, "split");
       return -1;
    }
-   status = createMappers(nmappers, com, inter);
+   status = createMappers(nmappers, com);
    if (inter == ZERO)
    {
       status = deleteFiles(nmappers, "split");
@@ -80,14 +80,48 @@ int processControl(char *log, int lines, int nmappers, int nreducers, char *comm
       return status;
    }
    gettimeofday(&end, NULL);
-   printf("Time of execution: %ld\n", ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec)));
-   printf("ms");
-   if(inter == ONE){
-      clear();
-   }
+   printf("Time of execution: %ld ms\n", ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec)));
 
    return status;
 }
+int validationParameters(char *log, int lines, int nmappers, int nreducers, int inter)
+{
+   int fileLines;
+   fileLines = lineCounter(log);
+   fileLines++;
+   int fileLinesBlank = fileLines - 1;
+
+   FILE *fp = fopen(log, "r");
+   if (fp == NULL)
+   {
+      printf("The file doesnt exist!");
+      return -1;
+   }
+   fclose(fp);
+   if (fileLines != lines && fileLinesBlank != lines)
+   {
+      printf("Invalid number of lines\n");
+      return -1;
+   }
+   if (nreducers <= ZERO || nreducers > nmappers)
+   {
+      perror("Invalid number of reducers\n");
+      return -1;
+   }
+   if (nmappers <= ZERO || nmappers > lines)
+   {
+      printf("Invalid number of mappers\n");
+      return -1;
+   }
+   if (inter != 0 && inter != 1)
+   {
+      printf("Invalid number of inter\n");
+      return -1;
+   }
+
+   return 0;
+}
+
 int split(char *logfile, int lines, int nmappers)
 {
 
@@ -155,7 +189,7 @@ int split(char *logfile, int lines, int nmappers)
    }
    return 0;
 }
-int createMappers(int nmappers, command command, int intermediate)
+int createMappers(int nmappers, command command)
 {
    int status = 0;
    int i = 0;
@@ -176,7 +210,7 @@ int createMappers(int nmappers, command command, int intermediate)
       else if (pidC == ZERO)
       {
          sprintf(aux, "split%d.txt", i);
-         stat = mapper(aux, command, i, intermediate);
+         stat = mapper(aux, command, i);
          if (stat)
          {
             return -1;
@@ -201,7 +235,7 @@ int createMappers(int nmappers, command command, int intermediate)
    }
    return stat;
 }
-int mapper(char *split, command com, int iter, int intermediate)
+int mapper(char *split, command com, int iter)
 {
    map x;
 
@@ -464,7 +498,7 @@ int createReducers(int nreducers, int nmappers)
       }
       if (pidE == ZERO)
       {
-         stat = reducer(1, assignments[z], z);
+         stat = reducer(assignments[z], z);
          if (stat)
          {
             return -1;
@@ -491,7 +525,7 @@ int createReducers(int nreducers, int nmappers)
    return stat;
 }
 
-int reducer(int intermediate, int *assignments, int index)
+int reducer(int *assignments, int index)
 {
    int i = 0;
    int suma = 0;
@@ -538,4 +572,24 @@ int reducer(int intermediate, int *assignments, int index)
    fprintf(writer, "%d", suma);
    fclose(writer);
    return 0;
+}
+int lineCounter(char *log)
+{
+   char *command;
+   command = (char *)calloc(20, sizeof(log) * 20);
+   FILE *fp1;
+   int lines;
+   sprintf(command, "cat %s | wc -l > lineCounterAux.txt", log);
+   system(command);
+   fp1 = fopen("lineCounterAux.txt", "r");
+   if (fp1 == NULL)
+   {
+      perror("Error: ");
+      return (-1);
+   }
+   fscanf(fp1, "%d", &lines);
+   fclose(fp1);
+   remove("lineCounterAux.txt");
+   free(command);
+   return lines;
 }
