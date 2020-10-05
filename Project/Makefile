@@ -1,21 +1,8 @@
-#===========================Makefile================================#
+all: ProgProcesos ProgHilos
 
-CC=gcc 
-STD= -std=c89
-IDIR = common/inc
-CFLAGS=-Wall -I$(IDIR)
-OBJS = analogp.o analogh.o
+ProgProcesos: analogp.c
+	gcc -std=c89 -o ProgProcesos analogp.c libs/libProcess.c
 
-all: $(EXEC)
-
-$(EXEC): $(OBJS)
-    $(CC) $(CFLAGS) $^ -o (EXEC)
-
-analogp.o: analogp.c libs/libProcess.c
-    $(CC) (STD) -c $(CFLAGS) analogp.c
-
-analogh.o: analogh.c libs/libThreads.c
-    $(CC) (STD) -c $(CFLAGS) analogh.c
-
-clean:
-    rm -rf *.o (EXEC) 
+ProgHilos: analogh.c
+	gcc -pthread -std=c89  -o  ProgHilos analogh.c libs/libThreads.c
+	
