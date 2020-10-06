@@ -222,13 +222,12 @@ void *mapper(void *infor)
         h = info->com.col;
         double buf[19];
         int z = 1;
-    
+
         while (fscanf(file, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf",
                       &buf[1], &buf[2], &buf[3], &buf[4], &buf[5], &buf[6],
                       &buf[7], &buf[8], &buf[9], &buf[10], &buf[11], &buf[12],
                       &buf[13], &buf[14], &buf[15], &buf[16], &buf[17], &buf[18]) != EOF)
         {
-            /*printf("%lf ----------------- %lf\n",buf[h],info->com.eq);*/
             switch (info->com.dif)
             {
             case 1:
@@ -242,7 +241,6 @@ void *mapper(void *infor)
             case 2:
                 if (buf[h] > info->com.eq)
                 {
-                    /*printf("ENTRO");*/
                     info->mapper.key[z] = buf[1];
                     info->mapper.value[z] = buf[h];
                     z++;
@@ -317,12 +315,6 @@ int createReducers(int nreducers, int nmappers, map *mapper)
             k++;
         }
     }
-    /*printf("------------------------------------------\n");
-    for (i = ZERO; i < nmappers; i++)
-    {
-        printf("%d\n", mapper[i].key[0]);
-        
-    }*/
     int suma = 0;
     for (i = ZERO; i < nreducers; i++)
     {
@@ -362,7 +354,7 @@ void *reducer(void *assig)
     while (info->assigments[i] != MONE)
     {
         int indej = info->assigments[i];
-    
+
         info->res += mapper[indej].key[0] - 1;
         i++;
     }

@@ -48,7 +48,7 @@ int processControl(char *log, int lines, int nmappers, int nreducers, char *comm
  * Description: Divides the main document according to the number of mappers, this is saved in files named split with the respective consecutive number of its division.
  * */
 
-int split(char *logfile, int lines, int nmappers); 
+int split(char *logfile, int lines, int nmappers);
 
 /**
  * Name: Create mappers.

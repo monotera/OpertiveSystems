@@ -256,19 +256,17 @@ int mapper(char *split, command com, int iter)
       {
          x.value = -163;
          x.key = buf[1];
-         printf("%lf ---------------- %lf\n", buf[h],com.eq);
          switch (com.dif)
          {
          case 1:
             if (buf[h] < com.eq)
             {
-               printf("entro");
                x.value = buf[h];
             }
             break;
          case 2:
             if (buf[h] > com.eq)
-            {printf("entro\n");
+            {
                x.value = buf[h];
             }
             break;

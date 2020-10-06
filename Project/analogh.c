@@ -59,17 +59,6 @@ int main(int argc, char *argv[])
          scanf("%s", command);
          int output = -1;
          output = processControl(argv[1], lines, nmappers, nreducers, command);
-         /*output = processControl("log40K",40000,10,5,"5,>=,1");
-         if (output >= ZERO)
-         {
-            printf("there are %d records that meet the condition\n", output);
-         }
-         output = processControl("log40K",40000,10,5,"5,>,1");
-         if (output >= ZERO)
-         {
-            printf("there are %d records that meet the condition\n", output);
-         }*/
-         /*output = processControl("prk",1039558,10,5,"5,>=,1");*/
          if (output >= ZERO)
          {
             printf("there are %d records that meet the condition\n", output);
