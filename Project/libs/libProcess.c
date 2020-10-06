@@ -247,26 +247,28 @@ int mapper(char *split, command com, int iter)
    {
       int h = 0;
       h = com.col;
-      int buf[19];
+      double buf[19];
 
-      while (fscanf(file, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
+      while (fscanf(file, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf",
                     &buf[1], &buf[2], &buf[3], &buf[4], &buf[5], &buf[6],
                     &buf[7], &buf[8], &buf[9], &buf[10], &buf[11], &buf[12],
                     &buf[13], &buf[14], &buf[15], &buf[16], &buf[17], &buf[18]) != EOF)
       {
          x.value = -163;
          x.key = buf[1];
+         printf("%lf ---------------- %lf\n", buf[h],com.eq);
          switch (com.dif)
          {
          case 1:
             if (buf[h] < com.eq)
             {
+               printf("entro");
                x.value = buf[h];
             }
             break;
          case 2:
             if (buf[h] > com.eq)
-            {
+            {printf("entro\n");
                x.value = buf[h];
             }
             break;
@@ -293,7 +295,7 @@ int mapper(char *split, command com, int iter)
          }
          if (x.value != OTHER)
          {
-            fprintf(writer, "%d %d \n", x.key, x.value);
+            fprintf(writer, "%d %lf \n", x.key, x.value);
          }
       }
    }
@@ -402,7 +404,7 @@ struct command transform_command(char *command)
          {
             flag = 1;
          }
-         eq = atoi(token);
+         eq = atof(token);
          break;
 
       default:

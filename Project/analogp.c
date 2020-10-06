@@ -21,7 +21,7 @@
 
 int main(int argc, char *argv[])
 {
-   if (argc != SIX)
+   /*if (argc != SIX)
    {
       perror("Error : wrong number of parameters\n");
       exit(-1);
@@ -40,7 +40,7 @@ int main(int argc, char *argv[])
    {
       printf("\nGood bye!\n");
       exit(-1);
-   }
+   }*/
    while (ONE)
    {
       int option = 0;
@@ -51,12 +51,12 @@ int main(int argc, char *argv[])
       switch (option)
       {
       case 1:
-         if (inter == ONE)
+         /*if (inter == ONE)
          {
             printf("\nHello!, Checking for files deletions!\n");
             clear(nmappers, nreducers);
             printf("Done!\n");
-         }
+         }*/
          printf("Please insert your command line (column,sign,value)\n");
          printf("\"Column\" must be a number\n");
          printf("\"Sign\" must be an operator between: \"=\", \"<\", \">\", \"<=\", \">= \"\n");
@@ -66,7 +66,8 @@ int main(int argc, char *argv[])
          scanf("%s", command);
 
          int output = -1;
-         output = processControl(argv[1], lines, nmappers, nreducers, command, inter);
+         /*output = processControl(argv[1], lines, nmappers, nreducers, command, inter);*/
+         output = processControl("log10000",10000,10,5,"5,>,1",0);
          if (output >= ZERO)
          {
             printf("there are %d records that meet the condition\n", output);

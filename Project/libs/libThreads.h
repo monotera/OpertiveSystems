@@ -19,8 +19,8 @@
 
 typedef struct map
 {
-   int *key;
-   int *value;
+   float *key;
+   double *value;
 } map;
 typedef struct command
 {

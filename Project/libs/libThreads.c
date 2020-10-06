@@ -167,8 +167,8 @@ int createMappers(int nmappers, command commandM, map *mapperStruct)
         sprintf(par[i].split, "split%d.txt", i);
         par[i].com = commandM;
         par[i].numLines = lineCounter(par[i].split);
-        par[i].mapper.key = calloc(par[i].numLines + 1, sizeof(int));
-        par[i].mapper.value = calloc(par[i].numLines + 1, sizeof(int));
+        par[i].mapper.key = calloc(par[i].numLines + 1, sizeof(float));
+        par[i].mapper.value = calloc(par[i].numLines + 1, sizeof(float));
     }
 
     int j = 0;
@@ -219,9 +219,9 @@ void *mapper(void *infor)
         char *str = (char *)malloc(CHUNK);
         int h = 0;
         h = info->com.col;
-        int buf[19];
+        double buf[19];
         int z = 1;
-        while (fscanf(file, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
+        while (fscanf(file, "%lf %lf %lf %lfd %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf",
                       &buf[1], &buf[2], &buf[3], &buf[4], &buf[5], &buf[6],
                       &buf[7], &buf[8], &buf[9], &buf[10], &buf[11], &buf[12],
                       &buf[13], &buf[14], &buf[15], &buf[16], &buf[17], &buf[18]) != EOF)

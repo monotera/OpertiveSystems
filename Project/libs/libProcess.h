@@ -22,14 +22,14 @@
 typedef struct map
 {
    int key;
-   int value;
+   double value;
 } map;
 
 typedef struct command
 {
    int col;
    int dif;
-   int eq;
+   double eq;
 } command;
 
 /**
