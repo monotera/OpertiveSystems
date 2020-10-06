@@ -19,14 +19,14 @@
 
 typedef struct map
 {
-   float *key;
+   int *key;
    double *value;
 } map;
 typedef struct command
 {
    int col;
    int dif;
-   int eq;
+   double eq;
 } command;
 typedef struct parameters
 {

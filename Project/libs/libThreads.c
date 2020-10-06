@@ -66,12 +66,13 @@ int validationParameters(char *log, int lines, int nmappers, int nreducers)
     int fileLinesBlank = fileLines - 1;
 
     FILE *fp = fopen(log, "r");
-    if(fp == NULL){
+    if (fp == NULL)
+    {
         printf("The file doesnt exist!");
         return -1;
     }
     fclose(fp);
-    if (fileLines != lines  && fileLinesBlank != lines)
+    if (fileLines != lines && fileLinesBlank != lines)
     {
         printf("Invalid number of lines\n");
         return -1;
@@ -79,12 +80,12 @@ int validationParameters(char *log, int lines, int nmappers, int nreducers)
     if (nreducers <= ZERO || nreducers > nmappers)
     {
         perror("Invalid number of reducers\n");
-        return-1;
+        return -1;
     }
     if (nmappers <= ZERO || nmappers > lines)
     {
         printf("Invalid number of mappers\n");
-        return-1;
+        return -1;
     }
     return 0;
 }
@@ -167,8 +168,8 @@ int createMappers(int nmappers, command commandM, map *mapperStruct)
         sprintf(par[i].split, "split%d.txt", i);
         par[i].com = commandM;
         par[i].numLines = lineCounter(par[i].split);
-        par[i].mapper.key = calloc(par[i].numLines + 1, sizeof(float));
-        par[i].mapper.value = calloc(par[i].numLines + 1, sizeof(float));
+        par[i].mapper.key = calloc(par[i].numLines + 1, sizeof(int));
+        par[i].mapper.value = calloc(par[i].numLines + 1, sizeof(double));
     }
 
     int j = 0;
@@ -221,12 +222,13 @@ void *mapper(void *infor)
         h = info->com.col;
         double buf[19];
         int z = 1;
-        while (fscanf(file, "%lf %lf %lf %lfd %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf",
+    
+        while (fscanf(file, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf",
                       &buf[1], &buf[2], &buf[3], &buf[4], &buf[5], &buf[6],
                       &buf[7], &buf[8], &buf[9], &buf[10], &buf[11], &buf[12],
                       &buf[13], &buf[14], &buf[15], &buf[16], &buf[17], &buf[18]) != EOF)
         {
-
+            /*printf("%lf ----------------- %lf\n",buf[h],info->com.eq);*/
             switch (info->com.dif)
             {
             case 1:
@@ -240,6 +242,7 @@ void *mapper(void *infor)
             case 2:
                 if (buf[h] > info->com.eq)
                 {
+                    /*printf("ENTRO");*/
                     info->mapper.key[z] = buf[1];
                     info->mapper.value[z] = buf[h];
                     z++;
@@ -300,7 +303,7 @@ int createReducers(int nreducers, int nmappers, map *mapper)
     int rj = 0;
 
     for (i = ZERO; i < nreducers; i++)
-        assignments[i] = (int *)calloc(20, sizeof(int) * 20);
+        assignments[i] = (int *)calloc(20, sizeof(int));
     i = 0;
     while (i < nmappers)
     {
@@ -314,7 +317,12 @@ int createReducers(int nreducers, int nmappers, map *mapper)
             k++;
         }
     }
-
+    /*printf("------------------------------------------\n");
+    for (i = ZERO; i < nmappers; i++)
+    {
+        printf("%d\n", mapper[i].key[0]);
+        
+    }*/
     int suma = 0;
     for (i = ZERO; i < nreducers; i++)
     {
@@ -354,6 +362,7 @@ void *reducer(void *assig)
     while (info->assigments[i] != MONE)
     {
         int indej = info->assigments[i];
+    
         info->res += mapper[indej].key[0] - 1;
         i++;
     }
@@ -391,7 +400,7 @@ struct command transform_command(char *command)
     int place = 0;
     int colum = 0;
     char *dif = (char *)malloc(3);
-    int eq = 0;
+    double eq = 0;
     int flag = 0;
 
     while (token != NULL)
@@ -407,7 +416,7 @@ struct command transform_command(char *command)
         case 2:
             if (strcmp(token, "0") == ZERO) /*Its 0 so the validation is already done*/
                 flag = 1;
-            eq = atoi(token);
+            eq = atof(token);
             break;
 
         default:
