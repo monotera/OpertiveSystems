@@ -1,3 +1,4 @@
+/*Nelson Mosquera Carlos Erazo Gabriel Niño*/
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <stdlib.h>
