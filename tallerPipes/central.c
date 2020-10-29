@@ -52,8 +52,8 @@ int main(int argc, char **argv)
   printf("Abrio el pipe\n");
   char message[100];
   char mat[4][100];
-  int i = 0;
   int edad, id;
+
   while (read(fd, message, 100) > 0)
   {
     separar(message, mat);
@@ -63,16 +63,14 @@ int main(int argc, char **argv)
     {
       if (edad >= 21 && edad <= 50)
       {
-        printf("Nombre: %s ", mat[0]);
-        printf("Salario: %s\n", mat[1]);
+        printf("Nombre: %s Aspiracion salarial: %s\n", mat[0], mat[1]);
       }
     }
     else
     {
       printf("buscador.c %d fin del procesamiento\n", id);
-      kill(id,SIGUSR1);
-      sleep(0.5);
-      kill(id,9);
+      kill(id, SIGUSR1);
     }
   }
+  unlink(argv[1]);
 }

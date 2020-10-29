@@ -62,7 +62,7 @@ void imprimir(emple *emp, int cuantos)
 }
 void signalHandler()
 {
-  printf("Programa buscador terminando, PID: %d\n", getpid());
+  printf("Programa buscador.c esta terminando, PID: %d\n", getpid());
 }
 int main(int argc, char *argv[])
 {
@@ -81,10 +81,10 @@ int main(int argc, char *argv[])
     asignar(miemp, nom, edad, salario, i++);
   }
   fclose(fp);
-  imprimir(miemp, i);
+  /*imprimir(miemp, i);*/
 
-  EnviarPipe(miemp, i, argv[2]);
   while (1)
   {
+    EnviarPipe(miemp, i, argv[2]);
   }
 }
