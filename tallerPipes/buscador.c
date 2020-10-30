@@ -33,6 +33,7 @@ void EnviarPipe(emple *miemp, int cuantos, char pipe[])
     printf("Sending throught the pipe \n");
     sleep(1);
   }
+  close(fd);
 }
 
 /* asignar
