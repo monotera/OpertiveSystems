@@ -9,6 +9,8 @@
 #include <signal.h>
 #include "empleados.h"
 
+int bandera = 1;
+
 void EnviarPipe(emple *miemp, int cuantos, char pipe[])
 {
 
@@ -64,6 +66,7 @@ void imprimir(emple *emp, int cuantos)
 void signalHandler()
 {
   printf("Programa buscador.c esta terminando, PID: %d\n", getpid());
+  bandera = 0;
 }
 int main(int argc, char *argv[])
 {
@@ -84,7 +87,7 @@ int main(int argc, char *argv[])
   fclose(fp);
   /*imprimir(miemp, i);*/
 
-  while (1)
+  while (bandera)
   {
     EnviarPipe(miemp, i, argv[2]);
   }

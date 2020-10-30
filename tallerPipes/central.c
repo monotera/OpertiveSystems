@@ -70,8 +70,6 @@ int main(int argc, char **argv)
     {
       printf("buscador.c %d fin del procesamiento\n", id);
       kill(id, SIGUSR1);
-      sleep(0.5);
-      kill(id, 9);
     }
   }
   unlink(argv[1]);
