@@ -63,7 +63,7 @@ int main(int argc, char **argv)
     {
       if (edad >= 21 && edad <= 50)
       {
-        printf("Nombre: %s Aspiracion salarial: %s\n", mat[0], mat[1]);
+        printf("Nombre: %s Aspiracion salarial: %s\n", mat[0], mat[2]);
       }
     }
     else
