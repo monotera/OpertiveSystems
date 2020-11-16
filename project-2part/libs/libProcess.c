@@ -19,11 +19,12 @@
 
 int flag = 1;
 
-void signalHandler()
+void signalHandlerFinisher()
 {
-   printf("Signal Handler %d\n", getpid());
+   printf("Process %d ending\n", getpid());
    flag = 0;
 }
+
 int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
 {
    int i;
@@ -40,7 +41,7 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
       pid = fork();
       if (pid == 0)
       {
-         signal(SIGUSR1, signalHandler);
+         signal(SIGUSR1, signalHandlerFinisher);
          x = getpid();
          fd = open("pIdPipe", O_WRONLY);
          write(fd, &x, sizeof(int));
@@ -66,7 +67,7 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
       pid = fork();
       if (pid == 0)
       {
-         signal(SIGUSR1, signalHandler);
+         signal(SIGUSR1, signalHandlerFinisher);
          x = getpid();
          fd = open("pIdPipe", O_WRONLY);
          write(fd, &x, sizeof(int));
@@ -89,6 +90,19 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
       }
    }
    unlink("pIdPipe");
+
+   /**********************************************/
+   char pipeName[100];
+   for (i = 0; i < nmappers; i++)
+   {
+      sprintf(pipeName, "pipeCom%d", pIdM[i]);
+      unlink(pipeName);
+      if (mkfifo(pipeName, fifo_mode) == -1)
+      {
+         perror("mkfifo");
+         return -1;
+      }
+   }
    return 0;
 }
 int processControl(char *log, int lines, int nmappers, int nreducers, char *command, int *pIdM, int *pIdR)
@@ -98,18 +112,44 @@ int processControl(char *log, int lines, int nmappers, int nreducers, char *comm
    {
       printf("%d\n", pIdM[i]);
    }
-   for (i = 0; i < nreducers; i++)
+   printf("enr");
+   sendCommand("lol", 3, pIdM);
+   printf("hola");
+   return 0;
+}
+
+int sendCommand(char *command, int nmappers, int *pIdM)
+{
+
+   int i;
+   int fd, pid, messagelen;
+   mode_t fifo_mode = S_IRUSR | S_IWUSR;
+   char pipeName[100];
+   for (i = 0; i < nmappers; i++)
    {
-      printf("%d\n", pIdR[i]);
+      sprintf(pipeName, "pipeCom%d", pIdM[i]);
+      printf("%s\n",pipeName);
+      messagelen = strlen(command);
+      fd = open(pipeName, O_WRONLY);
+      write(fd, command, messagelen);
+      close(fd);
+      kill(pIdM[i], SIGUSR1);
    }
    return 0;
 }
 
 mapper()
 {
+   int fd;
+   char pipeName[100];
+   char command[100];
+   sprintf(pipeName, "pipeCom%d", getpid());
    while (flag)
    {
       pause();
+      fd = open(pipeName, O_RDONLY);
+      read(fd, command, 100);
+      printf("mapper: %s\n", command);
    }
 }
 reducer()
@@ -117,6 +157,7 @@ reducer()
    while (flag)
    {
       pause();
+      printf("reducer\n");
    }
 }
 
