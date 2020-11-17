@@ -117,11 +117,17 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
 int processControl(char *log, int lines, int nmappers, int nreducers, char *command, int *pIdM, int *pIdR)
 {
    int status;
+   status = split(log, lines, nmappers);
+   if (status)
+   {
+      return status;
+   }
    status = sendCommand(command, nmappers, pIdM);
    if (status == MONE)
    {
       return -1;
    }
+
    /* kill(pIdM[0],SIGCONT);*/
    printf("volvi\n");
    return 0;
@@ -158,23 +164,110 @@ int mapper(int id, int redId)
 {
    int fd;
    char pipeName[100];
+   char aux[100];
+   int x = 0;
+   int pru[5] = {1, 2, 3, 4, -1};
+   char splitName[100];
+   struct command com;
 
    printf("HOlaM %d\n", getpid());
    while (flag)
    {
       kill(getpid(), SIGSTOP);
-      struct command com;
+      sprintf(splitName, "split%d.txt", id);
+      int numLines = lineCounter(splitName);
+      struct map *buff;
+      buff = (map *)calloc(20, sizeof(map));
+
       sprintf(pipeName, "pipeCom%d", getpid());
       fd = open(pipeName, O_RDONLY);
       read(fd, &com, sizeof(struct command));
       close(fd);
+
+      findMatch(splitName, com, id, redId,buff);
+
       kill(redId, SIGCONT);
       sprintf(pipeName, "pipeMR%d", id);
       fd = open(pipeName, O_WRONLY);
-      write(fd, &id, sizeof(int));
+      for (x = 0; x < 5; x++)
+      {
+         write(fd, &pru[x], sizeof(int));
+      }
       close(fd);
+      free(buff);
    }
    printf("Adios\n");
+}
+int findMatch(char *split, command com, int iter, int redId, map* maps)
+{
+   map x;
+   
+   char *buff = (char *)calloc(20, sizeof(char) * 20);
+   sprintf(buff, "buff%d.txt", iter);
+   FILE *writer = fopen(buff, "w");
+   FILE *file = fopen(split, "r");
+   if (file != NULL && writer != NULL)
+   {
+      int h = 0;
+      h = com.col;
+      double buf[19];
+
+      while (fscanf(file, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf",
+                    &buf[1], &buf[2], &buf[3], &buf[4], &buf[5], &buf[6],
+                    &buf[7], &buf[8], &buf[9], &buf[10], &buf[11], &buf[12],
+                    &buf[13], &buf[14], &buf[15], &buf[16], &buf[17], &buf[18]) != EOF)
+      {
+         x.value = -163;
+         x.key = buf[1];
+         switch (com.dif)
+         {
+         case 1:
+            if (buf[h] < com.eq)
+            {
+               x.value = buf[h];
+            }
+            break;
+         case 2:
+            if (buf[h] > com.eq)
+            {
+               x.value = buf[h];
+            }
+            break;
+         case 3:
+            if (buf[h] == com.eq)
+            {
+               x.value = buf[h];
+            }
+            break;
+         case 4:
+            if (buf[h] >= com.eq)
+            {
+               x.value = buf[h];
+            }
+            break;
+         case 5:
+            if (buf[h] <= com.eq)
+            {
+               x.value = buf[h];
+            }
+            break;
+         default:
+            break;
+         }
+         if (x.value != OTHER)
+         {
+            fprintf(writer, "%d %lf \n", x.key, x.value);
+         }
+      }
+   }
+   else
+   {
+      perror("Error: The file could not be open\n");
+      return -1;
+   }
+   fclose(writer);
+   fclose(file);
+   return 0;
 }
 int reducer(int id, int *abcd)
 {
@@ -190,8 +283,13 @@ int reducer(int id, int *abcd)
       sprintf(pipeName, "pipeMR%d", abcd[i]);
       fd = open(pipeName, O_RDONLY);
       read(fd, &j, sizeof(int));
+      while (j != -1)
+      {
+         printf("res %s %d => %d\n", pipeName, getpid(), j);
+         read(fd, &j, sizeof(int));
+      }
       close(fd);
-      printf("res %s %d => %d\n", pipeName,getpid(), j);
+
       i++;
    }
    printf("AdiosR\n");
@@ -426,7 +524,7 @@ int deleteFiles(int canti, char *type)
 
 int finalizer(int *pIdM, int nmappers)
 {
-   int i;
+   int i, status;
    char pipeName[100];
    for (i = 0; i < nmappers; i++)
    {
@@ -435,6 +533,12 @@ int finalizer(int *pIdM, int nmappers)
       sprintf(pipeName, "pipeMR%d", i);
       unlink(pipeName);
    }
+   status = deleteFiles(nmappers, "split");
+   if (status)
+   {
+      return status;
+   }
+   return 0;
 }
 
 int assignReducer(int *pIdR, int nreducers, int index, int **allocator)

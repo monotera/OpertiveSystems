@@ -76,17 +76,18 @@ int main(int argc, char *argv[])
       case 2:
          printf("Good bye world\n");
          int i;
-         finalizer(pIdM,nmappers);
-         for (i = 0; i < nmappers; i++)
-         {
-            kill(pIdM[i],SIGCONT);
-            kill(pIdM[i], SIGUSR1);
-         }
+         finalizer(pIdM, nmappers);
          for (i = 0; i < nreducers; i++)
          {
-            kill(pIdR[i],SIGCONT);
             kill(pIdR[i], SIGUSR1);
+            kill(pIdR[i], SIGCONT);
          }
+         for (i = 0; i < nmappers; i++)
+         {
+            kill(pIdM[i], SIGCONT);
+            kill(pIdM[i], SIGUSR1);
+         }
+
          wait(&status);
          free(pIdM);
          free(pIdR);
