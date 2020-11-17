@@ -27,7 +27,7 @@ void signalHandlerFinisher()
 
 int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
 {
-   int fd, pid, idW, idR, i,res;
+   int fd, pid, idW, idR, i, res;
    char pipeName[100];
    mode_t fifo_mode = S_IRUSR | S_IWUSR;
    int *allocator[nreducers];
@@ -122,7 +122,7 @@ int processControl(char *log, int lines, int nmappers, int nreducers, char *comm
    {
       return -1;
    }
-  /* kill(pIdM[0],SIGCONT);*/
+   /* kill(pIdM[0],SIGCONT);*/
    printf("volvi\n");
    return 0;
 }
@@ -159,7 +159,7 @@ int mapper(int id, int redId)
    int fd;
    char pipeName[100];
 
-   printf("HOlaM\n");
+   printf("HOlaM %d\n", getpid());
    while (flag)
    {
       kill(getpid(), SIGSTOP);
@@ -168,17 +168,31 @@ int mapper(int id, int redId)
       fd = open(pipeName, O_RDONLY);
       read(fd, &com, sizeof(struct command));
       close(fd);
-      printf("%d\n",redId);
+      kill(redId, SIGCONT);
+      sprintf(pipeName, "pipeMR%d", id);
+      fd = open(pipeName, O_WRONLY);
+      write(fd, &id, sizeof(int));
+      close(fd);
    }
    printf("Adios\n");
 }
 int reducer(int id, int *abcd)
 {
-   int j = 0;
-   printf("HOlaR %d\n",getpid());
+   int j = 0, i = 0;
+   int fd;
+   char pipeName[100];
+   printf("HOlaR %d\n", getpid());
    while (flag)
    {
+      if (abcd[i] == -1)
+         i = 0;
       kill(getpid(), SIGSTOP);
+      sprintf(pipeName, "pipeMR%d", abcd[i]);
+      fd = open(pipeName, O_RDONLY);
+      read(fd, &j, sizeof(int));
+      close(fd);
+      printf("res %s %d => %d\n", pipeName,getpid(), j);
+      i++;
    }
    printf("AdiosR\n");
 }
