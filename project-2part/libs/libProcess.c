@@ -25,11 +25,32 @@ void signalHandlerFinisher()
    flag = 0;
 }
 
+int assignReducer(int *pIdR, int nreducers, int index, int **allocator)
+{
+   int i;
+   int j;
+
+   for (i = 0; i < nreducers; i++)
+   {
+      j = 0;
+      while (allocator[i][j] != -1)
+      {
+         if (allocator[i][j] == index)
+         {
+            return i;
+         }
+         j++;
+      }
+   }
+}
 
 int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
 {
    int fd, pid, idW, idR, i;
-   char pipeName[100];
+   char pipeCom[100], pipeMR[100];
+   int *allocator[nreducers];
+   int j = 0;
+   int res;
    mode_t fifo_mode = S_IRUSR | S_IWUSR;
    signal(SIGUSR1, signalHandlerFinisher);
    unlink("pIdPipe");
@@ -38,31 +59,9 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
       perror("mkfifo");
       return -1;
    }
-   for (i = 0; i < nmappers; ++i)
-   {
-      pid = fork();
-      if (pid == 0)
-      {
-         idW = getpid();
-         fd = open("pIdPipe", O_WRONLY);
-         write(fd, &idW, sizeof(int));
-         close(fd);
-         mapper();
-         exit(0);
-      }
-      else if (pid < 0)
-      {
-         printf("Error");
-         exit(-1);
-      }
-      else if (pid > 0)
-      {
-         fd = open("pIdPipe", O_RDONLY);
-         read(fd, &idR, sizeof(int));
-         pIdM[i] = idR;
-         close(fd);
-      }
-   }
+
+   assignPipes(nmappers, nreducers, allocator);
+
    for (i = 0; i < nreducers; ++i)
    {
       pid = fork();
@@ -72,7 +71,7 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
          fd = open("pIdPipe", O_WRONLY);
          write(fd, &idW, sizeof(int));
          close(fd);
-         reducer();
+         reducer(i, allocator[i]);
          exit(0);
       }
       else if (pid < 0)
@@ -88,28 +87,90 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
          close(fd);
       }
    }
+
+   for (i = 0; i < nmappers; ++i)
+   {
+      pid = fork();
+      if (pid == 0)
+      {
+         idW = getpid();
+         fd = open("pIdPipe", O_WRONLY);
+         write(fd, &idW, sizeof(int));
+         close(fd);
+         res = assignReducer(pIdR, nreducers, i, allocator);
+         mapper(i, pIdR[res]);
+         exit(0);
+      }
+      else if (pid < 0)
+      {
+         printf("Error");
+         exit(-1);
+      }
+      else if (pid > 0)
+      {
+         fd = open("pIdPipe", O_RDONLY);
+         read(fd, &idR, sizeof(int));
+         pIdM[i] = idR;
+         close(fd);
+      }
+   }
    unlink("pIdPipe");
 
-   for (i = 0; i < nmappers; i++)
+  /* for (i = 0; i < nmappers; i++)
    {
-      sprintf(pipeName, "pipeCom%d", pIdM[i]);
-      unlink(pipeName);
-      if (mkfifo(pipeName, fifo_mode) == -1)
+      sprintf(pipeCom, "pipeCom%d", pIdM[i]);
+      unlink(pipeCom);
+      if (mkfifo(pipeCom, fifo_mode) == -1)
       {
          perror("mkfifo");
          return -1;
       }
+      sprintf(pipeMR, "pipeMR%d", i);
+      unlink(pipeMR);
+      if (mkfifo(pipeMR, fifo_mode) == -1)
+      {
+         perror("mkfifo");
+         return -1;
+      }
+   }*/
+
+   return 0;
+}
+
+int assignPipes(int nmappers, int nreducers, int **allocator)
+{
+   int i = 0;
+   int k = 0;
+   int j = 0;
+
+   for (i = ZERO; i < nreducers; i++)
+      allocator[i] = (int *)calloc(20, sizeof(int) * 20);
+   i = 0;
+   while (i < nmappers)
+   {
+      allocator[j][k] = i;
+      allocator[j][k + 1] = -1;
+      i++;
+      j++;
+      if (j == nreducers)
+      {
+         j = 0;
+         k++;
+      }
    }
    return 0;
 }
+
 int processControl(char *log, int lines, int nmappers, int nreducers, char *command, int *pIdM, int *pIdR)
 {
    int status;
-   status = sendCommand(command, nmappers, pIdM);
+   /*status = sendCommand(command, nmappers, pIdM);
    if (status == MONE)
    {
       return -1;
-   }
+   }*/
+   printf("%d\n",pIdR[0]);
+   kill(pIdR[0], SIGCONT);
    printf("volvi\n");
    return 0;
 }
@@ -141,29 +202,31 @@ int sendCommand(char *commandI, int nmappers, int *pIdM)
    return 0;
 }
 
-mapper()
+int mapper(int id, int redId)
 {
    int fd;
    char pipeName[100];
-
+   printf("Hola soyM: %d", getpid());
    while (flag)
    {
-      kill(getpid(), SIGSTOP);
-      struct command com;
+
+     /* kill(getpid(), SIGSTOP);*/
+      /*truct command com;
       sprintf(pipeName, "pipeCom%d", getpid());
       fd = open(pipeName, O_RDONLY);
       read(fd, &com, sizeof(struct command));
-      close(fd);
+      close(fd);*/
+      /*kill(redId, SIGCONT);*/
    }
-   printf("Adios\n");
 }
-reducer()
+int reducer(int id, int *allocator)
 {
+   int i;
+   printf("Hola soyR: %d", getpid());
    while (flag)
    {
-      kill(getpid(), SIGSTOP);
+      /*kill(getpid(), SIGSTOP);*/
    }
-   printf("AdiosR\n");
 }
 
 int split(char *logfile, int lines, int nmappers)
@@ -298,7 +361,7 @@ struct command transform_command(char *command)
    char *dif;
    dif = (char *)malloc(3);
    int eq = 0;
-   int flag = 0;
+   int flagC = 0;
 
    while (token != NULL)
    {
@@ -313,7 +376,7 @@ struct command transform_command(char *command)
       case 2:
          if (strcmp(token, "0") == ZERO) /*Its 0 so the validation is already done*/
          {
-            flag = 1;
+            flagC = 1;
          }
          eq = atof(token);
          break;
@@ -396,10 +459,12 @@ int deleteFiles(int canti, char *type)
 int finalizer(int *pIdM, int nmappers)
 {
    int i;
-   char pipeCom[100];
+   char pipeName[100];
    for (i = 0; i < nmappers; i++)
    {
-      sprintf(pipeCom, "pipeCom%d", pIdM[i]);
-      unlink(pipeCom);
+      sprintf(pipeName, "pipeCom%d", pIdM[i]);
+      unlink(pipeName);
+      sprintf(pipeName, "pipeMR%d", i);
+      unlink(pipeName);
    }
 }

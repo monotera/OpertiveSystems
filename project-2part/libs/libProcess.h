@@ -96,6 +96,8 @@ int deleteFiles(int canti, char *type);
 
 int finalizer(int *pIdM, int nmappers);
 
-int mapper();
-int reduccer();
+int assignPipes(int nmappers,int nreducers, int **allocator);
+
+int mapper(int id,int redId);
+int reduccer(int id, int *allocator);
 #endif

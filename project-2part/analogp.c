@@ -79,13 +79,11 @@ int main(int argc, char *argv[])
          finalizer(pIdM,nmappers);
          for (i = 0; i < nmappers; i++)
          {
-            printf("%d\n", pIdM[i]);
             kill(pIdM[i],SIGCONT);
             kill(pIdM[i], SIGUSR1);
          }
          for (i = 0; i < nreducers; i++)
          {
-            printf("%d\n", pIdR[i]);
             kill(pIdR[i],SIGCONT);
             kill(pIdR[i], SIGUSR1);
          }
