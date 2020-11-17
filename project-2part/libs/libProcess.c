@@ -25,33 +25,12 @@ void signalHandlerFinisher()
    flag = 0;
 }
 
-int assignReducer(int *pIdR, int nreducers, int index, int **allocator)
-{
-   int i;
-   int j;
-
-   for (i = 0; i < nreducers; i++)
-   {
-      j = 0;
-      while (allocator[i][j] != -1)
-      {
-         if (allocator[i][j] == index)
-         {
-            return i;
-         }
-         j++;
-      }
-   }
-}
-
 int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
 {
-   int fd, pid, idW, idR, i;
-   char pipeCom[100], pipeMR[100];
-   int *allocator[nreducers];
-   int j = 0;
-   int res;
+   int fd, pid, idW, idR, i,res;
+   char pipeName[100];
    mode_t fifo_mode = S_IRUSR | S_IWUSR;
+   int *allocator[nreducers];
    signal(SIGUSR1, signalHandlerFinisher);
    unlink("pIdPipe");
    if (mkfifo("pIdPipe", fifo_mode) == -1)
@@ -116,61 +95,34 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
    }
    unlink("pIdPipe");
 
-  /* for (i = 0; i < nmappers; i++)
+   for (i = 0; i < nmappers; i++)
    {
-      sprintf(pipeCom, "pipeCom%d", pIdM[i]);
-      unlink(pipeCom);
-      if (mkfifo(pipeCom, fifo_mode) == -1)
+      sprintf(pipeName, "pipeCom%d", pIdM[i]);
+      unlink(pipeName);
+      if (mkfifo(pipeName, fifo_mode) == -1)
       {
          perror("mkfifo");
          return -1;
       }
-      sprintf(pipeMR, "pipeMR%d", i);
-      unlink(pipeMR);
-      if (mkfifo(pipeMR, fifo_mode) == -1)
+      sprintf(pipeName, "pipeMR%d", i);
+      unlink(pipeName);
+      if (mkfifo(pipeName, fifo_mode) == -1)
       {
          perror("mkfifo");
          return -1;
-      }
-   }*/
-
-   return 0;
-}
-
-int assignPipes(int nmappers, int nreducers, int **allocator)
-{
-   int i = 0;
-   int k = 0;
-   int j = 0;
-
-   for (i = ZERO; i < nreducers; i++)
-      allocator[i] = (int *)calloc(20, sizeof(int) * 20);
-   i = 0;
-   while (i < nmappers)
-   {
-      allocator[j][k] = i;
-      allocator[j][k + 1] = -1;
-      i++;
-      j++;
-      if (j == nreducers)
-      {
-         j = 0;
-         k++;
       }
    }
    return 0;
 }
-
 int processControl(char *log, int lines, int nmappers, int nreducers, char *command, int *pIdM, int *pIdR)
 {
    int status;
-   /*status = sendCommand(command, nmappers, pIdM);
+   status = sendCommand(command, nmappers, pIdM);
    if (status == MONE)
    {
       return -1;
-   }*/
-   printf("%d\n",pIdR[0]);
-   kill(pIdR[0], SIGCONT);
+   }
+  /* kill(pIdM[0],SIGCONT);*/
    printf("volvi\n");
    return 0;
 }
@@ -206,27 +158,29 @@ int mapper(int id, int redId)
 {
    int fd;
    char pipeName[100];
-   printf("Hola soyM: %d", getpid());
+
+   printf("HOlaM\n");
    while (flag)
    {
-
-     /* kill(getpid(), SIGSTOP);*/
-      /*truct command com;
+      kill(getpid(), SIGSTOP);
+      struct command com;
       sprintf(pipeName, "pipeCom%d", getpid());
       fd = open(pipeName, O_RDONLY);
       read(fd, &com, sizeof(struct command));
-      close(fd);*/
-      /*kill(redId, SIGCONT);*/
+      close(fd);
+      printf("%d\n",redId);
    }
+   printf("Adios\n");
 }
-int reducer(int id, int *allocator)
+int reducer(int id, int *abcd)
 {
-   int i;
-   printf("Hola soyR: %d", getpid());
+   int j = 0;
+   printf("HOlaR %d\n",getpid());
    while (flag)
    {
-      /*kill(getpid(), SIGSTOP);*/
+      kill(getpid(), SIGSTOP);
    }
+   printf("AdiosR\n");
 }
 
 int split(char *logfile, int lines, int nmappers)
@@ -361,7 +315,7 @@ struct command transform_command(char *command)
    char *dif;
    dif = (char *)malloc(3);
    int eq = 0;
-   int flagC = 0;
+   int flag = 0;
 
    while (token != NULL)
    {
@@ -376,7 +330,7 @@ struct command transform_command(char *command)
       case 2:
          if (strcmp(token, "0") == ZERO) /*Its 0 so the validation is already done*/
          {
-            flagC = 1;
+            flag = 1;
          }
          eq = atof(token);
          break;
@@ -467,4 +421,46 @@ int finalizer(int *pIdM, int nmappers)
       sprintf(pipeName, "pipeMR%d", i);
       unlink(pipeName);
    }
+}
+
+int assignReducer(int *pIdR, int nreducers, int index, int **allocator)
+{
+   int i;
+   int j;
+
+   for (i = 0; i < nreducers; i++)
+   {
+      j = 0;
+      while (allocator[i][j] != -1)
+      {
+         if (allocator[i][j] == index)
+         {
+            return i;
+         }
+         j++;
+      }
+   }
+}
+int assignPipes(int nmappers, int nreducers, int **allocator)
+{
+   int i = 0;
+   int k = 0;
+   int j = 0;
+
+   for (i = ZERO; i < nreducers; i++)
+      allocator[i] = (int *)calloc(20, sizeof(int) * 20);
+   i = 0;
+   while (i < nmappers)
+   {
+      allocator[j][k] = i;
+      allocator[j][k + 1] = -1;
+      i++;
+      j++;
+      if (j == nreducers)
+      {
+         j = 0;
+         k++;
+      }
+   }
+   return 0;
 }

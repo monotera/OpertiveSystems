@@ -98,6 +98,6 @@ int finalizer(int *pIdM, int nmappers);
 
 int assignPipes(int nmappers,int nreducers, int **allocator);
 
-int mapper(int id,int redId);
-int reduccer(int id, int *allocator);
+int mapper(int id, int redId);
+int reducer(int id, int *abcd);
 #endif
