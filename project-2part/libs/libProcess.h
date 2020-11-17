@@ -35,8 +35,7 @@ typedef struct command
    double eq;
 } command;
 
-
-int init(int *pIdM, int *pIdR,int nmappers, int nreducers);
+int init(int *pIdM, int *pIdR, int nmappers, int nreducers);
 void signalHandlerFinisher();
 /**
  * Name: Process control.
@@ -74,7 +73,28 @@ int validationParameters(char *log, int lines, int nmappers, int nreducers);
 
 int lineCounter(char *log);
 
-int sendCommand(char * command, int nmappers,int *pIdM);
+int sendCommand(char *command, int nmappers, int *pIdM);
+
+/**
+ * Name: Transform command.
+ * Inputs: Search command.
+ * Outputs: Search command with which operations can be performed.
+ * Description: From the user input that indicates the parameters to be searched in the registers, the function recognizes each part of the search command.
+ * */
+
+struct command transform_command(char *command);
+/**
+ * Name: Validate command.
+ * Inputs: Document column, Search sign or conditional, Parameter, Flag.
+ * Outputs: Integer that verifies the operation of the function.
+ * Description: The fields of the search command are validated.
+ * */
+
+int validate_command(int col, char *dif, int eq, int flag);
+
+int deleteFiles(int canti, char *type);
+
+int finalizer(int *pIdM, int nmappers);
 
 int mapper();
 int reduccer();
