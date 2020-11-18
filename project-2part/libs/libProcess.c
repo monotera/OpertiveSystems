@@ -66,7 +66,7 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
          close(fd);
       }
    }
-
+   char splitName[100];
    for (i = 0; i < nmappers; ++i)
    {
       pid = fork();
@@ -166,7 +166,6 @@ int mapper(int id, int redId, int *pIdM)
    char pipeName[100];
    char aux[100];
    int x = 0;
-   int pru[10]={1,2,2,2,2,2,2,2,2,-1};
    char splitName[100];
    struct command com;
 
@@ -174,14 +173,28 @@ int mapper(int id, int redId, int *pIdM)
    while (flag)
    {
       printf("Me pause %d\n", getpid());
+
       kill(getpid(), SIGSTOP);
-      sprintf(splitName, "split%d.txt", id);
       sprintf(pipeName, "pipeCom%d", getpid());
       fd = open(pipeName, O_RDONLY);
       read(fd, &com, sizeof(struct command));
       close(fd);
 
-      sprintf(pipeName, "pipeMR%d", id);
+      sprintf(splitName, "split%d.txt", id);
+      struct map *buff;
+      buff = (map *)calloc(20, sizeof(map));
+      printf("entre\n");
+      findMatch(splitName, com, id, redId, buff);
+      int i = 0;
+
+      while (buff[i].key != -1)
+      {
+         printf(" %d \n", buff[i].key);
+         i++;
+      }
+      printf("\n");
+
+     /* sprintf(pipeName, "pipeMR%d", id);
       printf("Entre\n");
       do
       {
@@ -190,16 +203,16 @@ int mapper(int id, int redId, int *pIdM)
       } while (fd == -1);
       for (x = 0; x < 10; x++)
       {
-         write(fd, &pru[x], sizeof(int));
+         write(fd, &buff[x], sizeof(struct map));
       }
-      close(fd);
+      close(fd);*/
    }
    printf("Adios\n");
 }
 int findMatch(char *split, command com, int iter, int redId, map *maps)
 {
    map x;
-
+   int i = 0;
    char *buff = (char *)calloc(20, sizeof(char) * 20);
    sprintf(buff, "buff%d.txt", iter);
    FILE *writer = fopen(buff, "w");
@@ -223,30 +236,45 @@ int findMatch(char *split, command com, int iter, int redId, map *maps)
             if (buf[h] < com.eq)
             {
                x.value = buf[h];
+               maps[i].key = buf[1];
+               maps[i].value = buf[h];
+               i++;
             }
             break;
          case 2:
             if (buf[h] > com.eq)
             {
                x.value = buf[h];
+               maps[i].key = buf[1];
+               maps[i].value = buf[h];
+               i++;
             }
             break;
          case 3:
             if (buf[h] == com.eq)
             {
                x.value = buf[h];
+               maps[i].key = buf[1];
+               maps[i].value = buf[h];
+               i++;
             }
             break;
          case 4:
             if (buf[h] >= com.eq)
             {
                x.value = buf[h];
+               maps[i].key = buf[1];
+               maps[i].value = buf[h];
+               i++;
             }
             break;
          case 5:
             if (buf[h] <= com.eq)
             {
                x.value = buf[h];
+               maps[i].key = buf[1];
+               maps[i].value = buf[h];
+               i++;
             }
             break;
          default:
@@ -257,6 +285,7 @@ int findMatch(char *split, command com, int iter, int redId, map *maps)
             fprintf(writer, "%d %lf \n", x.key, x.value);
          }
       }
+      maps[i].key = -1;
    }
    else
    {
@@ -272,6 +301,7 @@ int reducer(int id, int *abcd)
    int j = 0, i = 0, x = 0, cont = 0;
    int fd;
    char pipeName[100];
+   struct map mapp;
    printf("HOlaR %d\n", getpid());
    while (flag)
    {
@@ -288,16 +318,18 @@ int reducer(int id, int *abcd)
 
       fd = open(pipeName, O_RDONLY);
       printf("volviR\n");
-      while (j != -1)
+      while (mapp.key != -1)
       {
-         read(fd, &j, sizeof(int));
-         printf("%d : %d\n", getpid(), j);
-         cont++;
+         read(fd, &mapp, sizeof(struct map));
+         if (mapp.key != -1)
+         {
+            printf("%s %d : %d\n", pipeName,getpid(), mapp.key);
+            cont++;
+         }
       }
       close(fd);
       printf("res %s %d => %d\n", pipeName, getpid(), cont);
       i++;
-      printf("---> %d\n", abcd[i]);
    }
    printf("AdiosR\n");
 }
