@@ -98,7 +98,7 @@ int finalizer(int *pIdM, int nmappers);
 
 int assignPipes(int nmappers, int nreducers, int **allocator);
 
-int mapper(int id, int redId);
+int mapper(int id, int redId,int *pIdM);
 int reducer(int id, int *abcd);
 
 int findMatch(char *split, command com, int iter, int redId, map *maps);

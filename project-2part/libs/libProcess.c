@@ -77,7 +77,7 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
          write(fd, &idW, sizeof(int));
          close(fd);
          res = assignReducer(pIdR, nreducers, i, allocator);
-         mapper(i, pIdR[res]);
+         mapper(i, pIdR[res], pIdM);
          exit(0);
       }
       else if (pid < 0)
@@ -127,8 +127,9 @@ int processControl(char *log, int lines, int nmappers, int nreducers, char *comm
    {
       return -1;
    }
+   printf("%d:\n", pIdM[0]);
+   int i;
 
-   /* kill(pIdM[0],SIGCONT);*/
    printf("volvi\n");
    return 0;
 }
@@ -160,13 +161,13 @@ int sendCommand(char *commandI, int nmappers, int *pIdM)
    return 0;
 }
 
-int mapper(int id, int redId)
+int mapper(int id, int redId, int *pIdM)
 {
    int fd;
    char pipeName[100];
    char aux[100];
    int x = 0;
-   int pru[5] = {1, 2, 3, 4, -1};
+   int pru[100];
    char splitName[100];
    struct command com;
 
@@ -175,33 +176,38 @@ int mapper(int id, int redId)
    {
       kill(getpid(), SIGSTOP);
       sprintf(splitName, "split%d.txt", id);
-      int numLines = lineCounter(splitName);
+      /* int numLines = lineCounter(splitName);
       struct map *buff;
-      buff = (map *)calloc(20, sizeof(map));
+      buff = (map *)calloc(20, sizeof(map));*/
 
       sprintf(pipeName, "pipeCom%d", getpid());
       fd = open(pipeName, O_RDONLY);
       read(fd, &com, sizeof(struct command));
       close(fd);
 
-      findMatch(splitName, com, id, redId,buff);
+      /*kill(getpid(), SIGSTOP);
+      printf("Hola soy %d\n", getpid());*/
+
+      /* kill(pIdM[id],SIGCONT);*/
 
       kill(redId, SIGCONT);
       sprintf(pipeName, "pipeMR%d", id);
+      printf("Entre\n");
       fd = open(pipeName, O_WRONLY);
-      for (x = 0; x < 5; x++)
+      for (x = 0; x < 10000; x++)
       {
+         pru[x] = x;
          write(fd, &pru[x], sizeof(int));
       }
       close(fd);
-      free(buff);
+      /*free(buff);*/
    }
    printf("Adios\n");
 }
-int findMatch(char *split, command com, int iter, int redId, map* maps)
+int findMatch(char *split, command com, int iter, int redId, map *maps)
 {
    map x;
-   
+
    char *buff = (char *)calloc(20, sizeof(char) * 20);
    sprintf(buff, "buff%d.txt", iter);
    FILE *writer = fopen(buff, "w");
@@ -271,7 +277,7 @@ int findMatch(char *split, command com, int iter, int redId, map* maps)
 }
 int reducer(int id, int *abcd)
 {
-   int j = 0, i = 0;
+   int j = 0, i = 0, x = 0;
    int fd;
    char pipeName[100];
    printf("HOlaR %d\n", getpid());
@@ -280,16 +286,16 @@ int reducer(int id, int *abcd)
       if (abcd[i] == -1)
          i = 0;
       kill(getpid(), SIGSTOP);
+      printf("EntreR\n");
       sprintf(pipeName, "pipeMR%d", abcd[i]);
       fd = open(pipeName, O_RDONLY);
-      read(fd, &j, sizeof(int));
-      while (j != -1)
+      printf("volviR\n");
+      for (x = 0; x < 10000; x++)
       {
-         printf("res %s %d => %d\n", pipeName, getpid(), j);
          read(fd, &j, sizeof(int));
       }
       close(fd);
-
+      printf("res %s %d => %d\n", pipeName, getpid(), j);
       i++;
    }
    printf("AdiosR\n");
