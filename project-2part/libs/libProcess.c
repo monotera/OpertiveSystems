@@ -166,7 +166,7 @@ int mapper(int id, int redId, int *pIdM)
    char pipeName[100];
    char aux[100];
    int x = 0;
-   int pru[50000];
+   int pru[10]={1,2,2,2,2,2,2,2,2,-1};
    char splitName[100];
    struct command com;
 
@@ -186,14 +186,13 @@ int mapper(int id, int redId, int *pIdM)
       do
       {
          kill(redId, SIGCONT);
-         fd = open(pipeName, O_WRONLY| O_NONBLOCK);
+         fd = open(pipeName, O_WRONLY | O_NONBLOCK);
       } while (fd == -1);
-      for (x = 0; x < 70000; x++)
+      for (x = 0; x < 10; x++)
       {
-         write(fd, &x, sizeof(int));
+         write(fd, &pru[x], sizeof(int));
       }
       close(fd);
-      printf("hola\n");
    }
    printf("Adios\n");
 }
@@ -276,6 +275,7 @@ int reducer(int id, int *abcd)
    printf("HOlaR %d\n", getpid());
    while (flag)
    {
+      j = 0;
       if (abcd[i] == -1)
       {
          i = 0;
@@ -288,9 +288,10 @@ int reducer(int id, int *abcd)
 
       fd = open(pipeName, O_RDONLY);
       printf("volviR\n");
-      for (x = 0; x < 70000; x++)
+      while (j != -1)
       {
          read(fd, &j, sizeof(int));
+         printf("%d : %d\n", getpid(), j);
          cont++;
       }
       close(fd);
