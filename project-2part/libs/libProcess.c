@@ -127,9 +127,8 @@ int processControl(char *log, int lines, int nmappers, int nreducers, char *comm
    {
       return -1;
    }
-   printf("%d:\n", pIdM[0]);
-   int i;
 
+   int i;
    printf("volvi\n");
    return 0;
 }
@@ -167,40 +166,34 @@ int mapper(int id, int redId, int *pIdM)
    char pipeName[100];
    char aux[100];
    int x = 0;
-   int pru[100];
+   int pru[50000];
    char splitName[100];
    struct command com;
 
    printf("HOlaM %d\n", getpid());
    while (flag)
    {
+      printf("Me pause %d\n", getpid());
       kill(getpid(), SIGSTOP);
       sprintf(splitName, "split%d.txt", id);
-      /* int numLines = lineCounter(splitName);
-      struct map *buff;
-      buff = (map *)calloc(20, sizeof(map));*/
-
       sprintf(pipeName, "pipeCom%d", getpid());
       fd = open(pipeName, O_RDONLY);
       read(fd, &com, sizeof(struct command));
       close(fd);
 
-      /*kill(getpid(), SIGSTOP);
-      printf("Hola soy %d\n", getpid());*/
-
-      /* kill(pIdM[id],SIGCONT);*/
-
-      kill(redId, SIGCONT);
       sprintf(pipeName, "pipeMR%d", id);
       printf("Entre\n");
-      fd = open(pipeName, O_WRONLY);
-      for (x = 0; x < 10000; x++)
+      do
       {
-         pru[x] = x;
-         write(fd, &pru[x], sizeof(int));
+         kill(redId, SIGCONT);
+         fd = open(pipeName, O_WRONLY| O_NONBLOCK);
+      } while (fd == -1);
+      for (x = 0; x < 70000; x++)
+      {
+         write(fd, &x, sizeof(int));
       }
       close(fd);
-      /*free(buff);*/
+      printf("hola\n");
    }
    printf("Adios\n");
 }
@@ -277,26 +270,33 @@ int findMatch(char *split, command com, int iter, int redId, map *maps)
 }
 int reducer(int id, int *abcd)
 {
-   int j = 0, i = 0, x = 0;
+   int j = 0, i = 0, x = 0, cont = 0;
    int fd;
    char pipeName[100];
    printf("HOlaR %d\n", getpid());
    while (flag)
    {
       if (abcd[i] == -1)
+      {
          i = 0;
+         cont = 0;
+      }
+
       kill(getpid(), SIGSTOP);
-      printf("EntreR\n");
       sprintf(pipeName, "pipeMR%d", abcd[i]);
+      printf("%s\n", pipeName);
+
       fd = open(pipeName, O_RDONLY);
       printf("volviR\n");
-      for (x = 0; x < 10000; x++)
+      for (x = 0; x < 70000; x++)
       {
          read(fd, &j, sizeof(int));
+         cont++;
       }
       close(fd);
-      printf("res %s %d => %d\n", pipeName, getpid(), j);
+      printf("res %s %d => %d\n", pipeName, getpid(), cont);
       i++;
+      printf("---> %d\n", abcd[i]);
    }
    printf("AdiosR\n");
 }
