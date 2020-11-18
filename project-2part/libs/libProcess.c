@@ -41,32 +41,6 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
 
    assignPipes(nmappers, nreducers, allocator);
 
-   for (i = 0; i < nreducers; ++i)
-   {
-      pid = fork();
-      if (pid == 0)
-      {
-         idW = getpid();
-         fd = open("pIdPipe", O_WRONLY);
-         write(fd, &idW, sizeof(int));
-         close(fd);
-         reducer(i, allocator[i]);
-         exit(0);
-      }
-      else if (pid < 0)
-      {
-         printf("Error");
-         exit(-1);
-      }
-      else if (pid > 0)
-      {
-         fd = open("pIdPipe", O_RDONLY);
-         read(fd, &idR, sizeof(int));
-         pIdR[i] = idR;
-         close(fd);
-      }
-   }
-
    for (i = 0; i < nmappers; ++i)
    {
       pid = fork();
@@ -77,7 +51,8 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
          write(fd, &idW, sizeof(int));
          close(fd);
          res = assignReducer(pIdR, nreducers, i, allocator);
-         mapper(i, pIdR[res], pIdM);
+         int d = i % 2;
+         mapper(d, pIdR[res], pIdM);
          exit(0);
       }
       else if (pid < 0)
@@ -93,6 +68,31 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
          close(fd);
       }
    }
+   for (i = 0; i < nreducers; ++i)
+   {
+      pid = fork();
+      if (pid == 0)
+      {
+         idW = getpid();
+         fd = open("pIdPipe", O_WRONLY);
+         write(fd, &idW, sizeof(int));
+         close(fd);
+         reducer(i, allocator[i], pIdM);
+         exit(0);
+      }
+      else if (pid < 0)
+      {
+         printf("Error");
+         exit(-1);
+      }
+      else if (pid > 0)
+      {
+         fd = open("pIdPipe", O_RDONLY);
+         read(fd, &idR, sizeof(int));
+         pIdR[i] = idR;
+         close(fd);
+      }
+   }
    unlink("pIdPipe");
 
    for (i = 0; i < nmappers; i++)
@@ -104,6 +104,9 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
          perror("mkfifo");
          return -1;
       }
+   }
+   for (i = 0; i < nreducers; i++)
+   {
       sprintf(pipeName, "pipeMR%d", i);
       unlink(pipeName);
       if (mkfifo(pipeName, fifo_mode) == -1)
@@ -127,9 +130,23 @@ int processControl(char *log, int lines, int nmappers, int nreducers, char *comm
    {
       return -1;
    }
-   printf("%d:\n", pIdM[0]);
-   int i;
 
+   int i;
+   for (i = 0; i < nmappers; i++)
+   {
+      kill(pIdM[i], SIGCONT);
+      printf("Master\n");
+      sleep(1);
+   }
+
+   /* for (i = 0; i < nmappers; i++)
+   {
+      kill(pIdM[i], SIGCONT);
+   }
+   for (i = 0; i < nreducers; i++)
+   {
+      kill(pIdR[i], SIGCONT);
+   }*/
    printf("volvi\n");
    return 0;
 }
@@ -167,7 +184,7 @@ int mapper(int id, int redId, int *pIdM)
    char pipeName[100];
    char aux[100];
    int x = 0;
-   int pru[100];
+   int pru[100] = {0, 1, 2, 3, -1};
    char splitName[100];
    struct command com;
 
@@ -176,28 +193,28 @@ int mapper(int id, int redId, int *pIdM)
    {
       kill(getpid(), SIGSTOP);
       sprintf(splitName, "split%d.txt", id);
-      /* int numLines = lineCounter(splitName);
-      struct map *buff;
-      buff = (map *)calloc(20, sizeof(map));*/
-
       sprintf(pipeName, "pipeCom%d", getpid());
       fd = open(pipeName, O_RDONLY);
       read(fd, &com, sizeof(struct command));
       close(fd);
 
-      /*kill(getpid(), SIGSTOP);
-      printf("Hola soy %d\n", getpid());*/
-
-      /* kill(pIdM[id],SIGCONT);*/
-
-      kill(redId, SIGCONT);
+      kill(getpid(), SIGSTOP);
+      printf("Mapper: %d\n", id);
       sprintf(pipeName, "pipeMR%d", id);
       printf("Entre\n");
+      kill(redId, SIGCONT);
       fd = open(pipeName, O_WRONLY);
-      for (x = 0; x < 10000; x++)
+      for (x = 0; x < 5; x++)
       {
-         pru[x] = x;
-         write(fd, &pru[x], sizeof(int));
+         if (x != 4)
+         {
+            pru[x] = 6;
+            write(fd, &pru[x], sizeof(int));
+         }
+         else
+         {
+            pru[x] = -1;
+         }
       }
       close(fd);
       /*free(buff);*/
@@ -275,28 +292,27 @@ int findMatch(char *split, command com, int iter, int redId, map *maps)
    fclose(file);
    return 0;
 }
-int reducer(int id, int *abcd)
+int reducer(int id, int *abcd, int *pidM)
 {
    int j = 0, i = 0, x = 0;
    int fd;
    char pipeName[100];
+   int cont = 0;
    printf("HOlaR %d\n", getpid());
    while (flag)
    {
-      if (abcd[i] == -1)
-         i = 0;
       kill(getpid(), SIGSTOP);
-      printf("EntreR\n");
-      sprintf(pipeName, "pipeMR%d", abcd[i]);
+      printf("EntreR %d\n", getpid());
+      sprintf(pipeName, "pipeMR%d", id);
       fd = open(pipeName, O_RDONLY);
-      printf("volviR\n");
-      for (x = 0; x < 10000; x++)
+      printf("voy %d\n", getpid());
+      while (j != -1)
       {
          read(fd, &j, sizeof(int));
+         cont++;
       }
+      printf("res %s %d => %d\n", pipeName, getpid(), cont);
       close(fd);
-      printf("res %s %d => %d\n", pipeName, getpid(), j);
-      i++;
    }
    printf("AdiosR\n");
 }
