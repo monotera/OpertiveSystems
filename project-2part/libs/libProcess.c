@@ -173,7 +173,7 @@ int mapper(int id, int redId, int *pIdM)
    while (flag)
    {
       printf("Me pause %d\n", getpid());
-
+      int i = 0;
       kill(getpid(), SIGSTOP);
       sprintf(pipeName, "pipeCom%d", getpid());
       fd = open(pipeName, O_RDONLY);
@@ -182,30 +182,25 @@ int mapper(int id, int redId, int *pIdM)
 
       sprintf(splitName, "split%d.txt", id);
       struct map *buff;
-      buff = (map *)calloc(20, sizeof(map));
-      printf("entre\n");
+      buff = (map *)calloc(CHUNK, sizeof(map) * CHUNK);
+
       findMatch(splitName, com, id, redId, buff);
-      int i = 0;
 
-      while (buff[i].key != -1)
-      {
-         printf(" %d \n", buff[i].key);
-         i++;
-      }
-      printf("\n");
-
-     /* sprintf(pipeName, "pipeMR%d", id);
-      printf("Entre\n");
+      sprintf(pipeName, "pipeMR%d", id);
       do
       {
          kill(redId, SIGCONT);
          fd = open(pipeName, O_WRONLY | O_NONBLOCK);
       } while (fd == -1);
-      for (x = 0; x < 10; x++)
+
+      while (buff[i].key != -1)
       {
-         write(fd, &buff[x], sizeof(struct map));
+         write(fd, &buff[i], sizeof(struct map));
+         i++;
       }
-      close(fd);*/
+      write(fd, &buff[i], sizeof(struct map));
+      close(fd);
+      free(buff);
    }
    printf("Adios\n");
 }
@@ -215,9 +210,9 @@ int findMatch(char *split, command com, int iter, int redId, map *maps)
    int i = 0;
    char *buff = (char *)calloc(20, sizeof(char) * 20);
    sprintf(buff, "buff%d.txt", iter);
-   FILE *writer = fopen(buff, "w");
+   /* FILE *writer = fopen(buff, "w");*/
    FILE *file = fopen(split, "r");
-   if (file != NULL && writer != NULL)
+   if (file != NULL /*&& writer != NULL*/)
    {
       int h = 0;
       h = com.col;
@@ -280,10 +275,10 @@ int findMatch(char *split, command com, int iter, int redId, map *maps)
          default:
             break;
          }
-         if (x.value != OTHER)
+         /*if (x.value != OTHER)
          {
             fprintf(writer, "%d %lf \n", x.key, x.value);
-         }
+         }*/
       }
       maps[i].key = -1;
    }
@@ -292,7 +287,7 @@ int findMatch(char *split, command com, int iter, int redId, map *maps)
       perror("Error: The file could not be open\n");
       return -1;
    }
-   fclose(writer);
+   /*fclose(writer);*/
    fclose(file);
    return 0;
 }
@@ -311,7 +306,7 @@ int reducer(int id, int *abcd)
          i = 0;
          cont = 0;
       }
-
+      mapp.key = 0;
       kill(getpid(), SIGSTOP);
       sprintf(pipeName, "pipeMR%d", abcd[i]);
       printf("%s\n", pipeName);
@@ -323,7 +318,6 @@ int reducer(int id, int *abcd)
          read(fd, &mapp, sizeof(struct map));
          if (mapp.key != -1)
          {
-            printf("%s %d : %d\n", pipeName,getpid(), mapp.key);
             cont++;
          }
       }
