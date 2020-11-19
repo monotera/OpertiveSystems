@@ -149,7 +149,7 @@ int processControl(char *log, int lines, int nmappers, int nreducers, char *comm
       return -1;
    }
    int i = 0;
-   while (i < nreducers)
+   /*while (i < nreducers)
    {
       sprintf(pipeName, "masterPipe%d", i);
       fd = open(pipeName, O_RDONLY);
@@ -157,7 +157,7 @@ int processControl(char *log, int lines, int nmappers, int nreducers, char *comm
       close(fd);
       ans += rd;
       i++;
-   }
+   }*/
    printf("Master %d ==> %d\n", i, ans);
    printf("volvi\n");
    return 0;
@@ -182,7 +182,17 @@ int sendCommand(char *commandI, int nmappers, int *pIdM)
    {
       sprintf(pipeName, "pipeCom%d", i);
       kill(pIdM[i], SIGCONT);
-      fd = open(pipeName, O_WRONLY);
+      while (1)
+      {
+         fd = open(pipeName, O_WRONLY);
+         if (fd == -1)
+            sleep(5);
+         else
+         {
+            break;
+         }
+      }
+
       write(fd, &com, sizeof(struct command));
       close(fd);
    }
@@ -205,12 +215,24 @@ int mapper(int id, int redId, int *pIdM)
       /*printf("Me pause %d\n", getpid());*/
       int i = 0;
       kill(getpid(), SIGSTOP);
+
       sprintf(pipeName, "pipeCom%d", id);
-      fd = open(pipeName, O_RDONLY);
+      while (1)
+      {
+         fd = open(pipeName, O_RDONLY);
+         if(fd == -1)
+            sleep(5);
+         else
+         {
+            break;
+         }
+         
+      }
+      
       read(fd, &com, sizeof(struct command));
       close(fd);
-
-      sprintf(splitName, "split%d.txt", id);
+      printf("res %d %d\n",getpid(),com.col);
+      /*sprintf(splitName, "split%d.txt", id);
       struct map *buff;
       buff = (map *)calloc(CHUNK, sizeof(map) * CHUNK);
 
@@ -230,7 +252,7 @@ int mapper(int id, int redId, int *pIdM)
       }
       write(fd, &buff[i], sizeof(struct map));
       close(fd);
-      free(buff);
+      free(buff);*/
    }
    printf("Adios\n");
 }
@@ -342,7 +364,6 @@ int reducer(int id, int *abcd)
       mapp.key = 0;
       kill(getpid(), SIGSTOP);
       sprintf(pipeName, "pipeMR%d", abcd[i]);
-
       fd = open(pipeName, O_RDONLY);
       while (mapp.key != -1)
       {
