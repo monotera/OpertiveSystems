@@ -37,6 +37,7 @@ typedef struct command
 
 int init(int *pIdM, int *pIdR, int nmappers, int nreducers);
 void signalHandlerFinisher();
+void signalHandlerReducer();
 /**
  * Name: Process control.
  * Inputs: Name of the document, Number of lines in the document, Number of mappers, Number of reducers, Search command.

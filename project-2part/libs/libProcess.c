@@ -18,11 +18,15 @@
 #define NT 18
 
 int flag = 1;
+int reducerFlag = 0;
 
 void signalHandlerFinisher()
 {
    printf("Process %d ending\n", getpid());
    flag = 0;
+}
+void signalHandlerReducer()
+{
 }
 
 int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
@@ -31,7 +35,9 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
    char pipeName[100];
    mode_t fifo_mode = S_IRUSR | S_IWUSR;
    int *allocator[nreducers];
+
    signal(SIGUSR1, signalHandlerFinisher);
+   signal(SIGUSR2, signalHandlerReducer);
    unlink("pIdPipe");
    if (mkfifo("pIdPipe", fifo_mode) == -1)
    {
@@ -39,6 +45,36 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
       return -1;
    }
 
+   unlink("masterPipe");
+   if (mkfifo("masterPipe", fifo_mode) == -1)
+   {
+      perror("mkfifo");
+      return -1;
+   }
+   for (i = 0; i < nmappers; i++)
+   {
+      sprintf(pipeName, "pipeCom%d", i);
+      unlink(pipeName);
+      if (mkfifo(pipeName, fifo_mode) == -1)
+      {
+         perror("mkfifo");
+         return -1;
+      }
+      sprintf(pipeName, "pipeMR%d", i);
+      unlink(pipeName);
+      if (mkfifo(pipeName, fifo_mode) == -1)
+      {
+         perror("mkfifo");
+         return -1;
+      }
+      sprintf(pipeName, "masterPipe%d", i);
+      unlink(pipeName);
+      if (mkfifo(pipeName, fifo_mode) == -1)
+      {
+         perror("mkfifo");
+         return -1;
+      }
+   }
    assignPipes(nmappers, nreducers, allocator);
 
    for (i = 0; i < nreducers; ++i)
@@ -94,29 +130,14 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
       }
    }
    unlink("pIdPipe");
-
-   for (i = 0; i < nmappers; i++)
-   {
-      sprintf(pipeName, "pipeCom%d", pIdM[i]);
-      unlink(pipeName);
-      if (mkfifo(pipeName, fifo_mode) == -1)
-      {
-         perror("mkfifo");
-         return -1;
-      }
-      sprintf(pipeName, "pipeMR%d", i);
-      unlink(pipeName);
-      if (mkfifo(pipeName, fifo_mode) == -1)
-      {
-         perror("mkfifo");
-         return -1;
-      }
-   }
    return 0;
 }
 int processControl(char *log, int lines, int nmappers, int nreducers, char *command, int *pIdM, int *pIdR)
 {
    int status;
+   int fd, rd, ans = 0;
+   reducerFlag = 0;
+   char pipeName[100];
    status = split(log, lines, nmappers);
    if (status)
    {
@@ -127,8 +148,17 @@ int processControl(char *log, int lines, int nmappers, int nreducers, char *comm
    {
       return -1;
    }
-
-   int i;
+   int i = 0;
+   while (i < nreducers)
+   {
+      sprintf(pipeName, "masterPipe%d", i);
+      fd = open(pipeName, O_RDONLY);
+      read(fd, &rd, sizeof(int));
+      close(fd);
+      ans += rd;
+      i++;
+   }
+   printf("Master %d ==> %d\n", i, ans);
    printf("volvi\n");
    return 0;
 }
@@ -150,7 +180,7 @@ int sendCommand(char *commandI, int nmappers, int *pIdM)
 
    for (i = 0; i < nmappers; i++)
    {
-      sprintf(pipeName, "pipeCom%d", pIdM[i]);
+      sprintf(pipeName, "pipeCom%d", i);
       kill(pIdM[i], SIGCONT);
       fd = open(pipeName, O_WRONLY);
       write(fd, &com, sizeof(struct command));
@@ -169,13 +199,13 @@ int mapper(int id, int redId, int *pIdM)
    char splitName[100];
    struct command com;
 
-   printf("HOlaM %d\n", getpid());
+   /*printf("HOlaM %d\n", getpid());*/
    while (flag)
    {
-      printf("Me pause %d\n", getpid());
+      /*printf("Me pause %d\n", getpid());*/
       int i = 0;
       kill(getpid(), SIGSTOP);
-      sprintf(pipeName, "pipeCom%d", getpid());
+      sprintf(pipeName, "pipeCom%d", id);
       fd = open(pipeName, O_RDONLY);
       read(fd, &com, sizeof(struct command));
       close(fd);
@@ -297,22 +327,23 @@ int reducer(int id, int *abcd)
    int fd;
    char pipeName[100];
    struct map mapp;
-   printf("HOlaR %d\n", getpid());
    while (flag)
    {
       j = 0;
       if (abcd[i] == -1)
       {
          i = 0;
+         sprintf(pipeName, "masterPipe%d", id);
+         fd = open(pipeName, O_WRONLY);
+         write(fd, &cont, sizeof(int));
+         close(fd);
          cont = 0;
       }
       mapp.key = 0;
       kill(getpid(), SIGSTOP);
       sprintf(pipeName, "pipeMR%d", abcd[i]);
-      printf("%s\n", pipeName);
 
       fd = open(pipeName, O_RDONLY);
-      printf("volviR\n");
       while (mapp.key != -1)
       {
          read(fd, &mapp, sizeof(struct map));
@@ -322,7 +353,6 @@ int reducer(int id, int *abcd)
          }
       }
       close(fd);
-      printf("res %s %d => %d\n", pipeName, getpid(), cont);
       i++;
    }
    printf("AdiosR\n");
@@ -559,11 +589,14 @@ int finalizer(int *pIdM, int nmappers)
 {
    int i, status;
    char pipeName[100];
+
    for (i = 0; i < nmappers; i++)
    {
-      sprintf(pipeName, "pipeCom%d", pIdM[i]);
+      sprintf(pipeName, "pipeCom%d", i);
       unlink(pipeName);
       sprintf(pipeName, "pipeMR%d", i);
+      unlink(pipeName);
+      sprintf(pipeName, "masterPipe%d", i);
       unlink(pipeName);
    }
    status = deleteFiles(nmappers, "split");
