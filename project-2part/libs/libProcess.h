@@ -63,7 +63,7 @@ int split(char *logfile, int lines, int nmappers);
  * Description: Validates number of parameters.
  * */
 
-int validationParameters(char *log, int lines, int nmappers, int nreducers);
+int validationParameters(char *log, int lines, int nmappers, int nreducers,int inter);
 
 /**
  * Name: Line counter.

@@ -219,6 +219,11 @@ int mapper(int id, int redId)
       buff = (map *)calloc(CHUNK, sizeof(map) * CHUNK);
       if (buff == NULL)
       {
+         perror("There was a problem allocating memory\n");
+         return -1;
+      }
+      if (buff == NULL)
+      {
          perror("Calloc couldnt be done\n");
          return -1;
       }
@@ -251,6 +256,11 @@ int findMatch(char *split, command com, int iter, int redId, map *maps)
    map x;
    int i = 0;
    char *buff = (char *)calloc(20, sizeof(char) * 20);
+   if (buff == NULL)
+   {
+      perror("There was a problem allocating memory\n");
+      return -1;
+   }
    sprintf(buff, "buff%d.txt", iter);
    /* FILE *writer = fopen(buff, "w");*/
    FILE *file = fopen(split, "r");
@@ -389,9 +399,19 @@ int split(char *logfile, int lines, int nmappers)
    {
 
       char *str = (char *)malloc(CHUNK);
+      if (str == NULL)
+      {
+         perror("There was a problem allocating memory\n");
+         return -1;
+      }
       int cont_lines = 1;
       int cont_splitFer = 0;
       char *aux = (char *)malloc(11);
+      if (aux == NULL)
+      {
+         perror("There was a problem allocating memory\n");
+         return -1;
+      }
       strcpy(aux, "split0.txt");
       FILE *writer;
       flag = 1;
@@ -437,7 +457,7 @@ int split(char *logfile, int lines, int nmappers)
    }
    return 0;
 }
-int validationParameters(char *log, int lines, int nmappers, int nreducers)
+int validationParameters(char *log, int lines, int nmappers, int nreducers, int inter)
 {
    int fileLines;
    fileLines = lineCounter(log);
@@ -466,13 +486,22 @@ int validationParameters(char *log, int lines, int nmappers, int nreducers)
       printf("Invalid number of mappers\n");
       return -1;
    }
-
+   if (inter != 0 && inter != 1)
+   {
+      printf("Invalid number of inter\n");
+      return -1;
+   }
    return 0;
 }
 int lineCounter(char *log)
 {
    char *command;
    command = (char *)calloc(20, sizeof(log) * 20);
+   if (command == NULL)
+   {
+      perror("There was a problem allocating memory\n");
+      return -1;
+   }
    FILE *fp1;
    int lines;
    sprintf(command, "cat %s | wc -l > lineCounterAux.txt", log);

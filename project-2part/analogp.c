@@ -29,12 +29,14 @@ int main(int argc, char *argv[])
    int lines = 0;
    int nmappers = 0;
    int nreducers = 0;
+   int inter = 0;
    int status = -1;
    int *pIdM, *pIdR;
    lines = atoi(argv[2]);
    nmappers = atoi(argv[3]);
    nreducers = atoi(argv[4]);
-   status = validationParameters(argv[1], lines, nmappers, nreducers);
+   inter = atoi(argv[5]);
+   status = validationParameters(argv[1], lines, nmappers, nreducers, inter);
    if (status != 0)
    {
       printf("\nError: problem wih parameters\n");
@@ -42,8 +44,18 @@ int main(int argc, char *argv[])
       exit(-1);
    }
    pIdM = (int *)calloc(nmappers, sizeof(int));
+   if (pIdM == NULL)
+   {
+      perror("There was a problem allocating memory\n");
+      return -1;
+   }
    pIdR = (int *)calloc(nreducers, sizeof(int));
-   status = init(pIdM, pIdR, nmappers, nreducers,argv[1],lines);
+   if (pIdR == NULL)
+   {
+      perror("There was a problem allocating memory\n");
+      return -1;
+   }
+   status = init(pIdM, pIdR, nmappers, nreducers, argv[1], lines);
    if (status != 0)
    {
       exit(-1);
@@ -76,8 +88,9 @@ int main(int argc, char *argv[])
       case 2:
          printf("Good bye world\n");
          int i;
-         status = finalizer(pIdM, nmappers,nreducers);
-         if(status != ZERO){
+         status = finalizer(pIdM, nmappers, nreducers);
+         if (status != ZERO)
+         {
             perror("There was a problem deleting the files\n");
          }
          for (i = 0; i < nreducers; i++)
