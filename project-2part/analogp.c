@@ -43,7 +43,7 @@ int main(int argc, char *argv[])
    }
    pIdM = (int *)calloc(nmappers, sizeof(int));
    pIdR = (int *)calloc(nreducers, sizeof(int));
-   status = init(pIdM, pIdR, nmappers, nreducers);
+   status = init(pIdM, pIdR, nmappers, nreducers,argv[1],lines);
    if (status != 0)
    {
       exit(-1);
@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
          scanf("%s", command);
 
          int output = -1;
-         output = processControl(argv[1], lines, nmappers, nreducers, command, pIdM, pIdR);
+         output = processControl(nmappers, nreducers, command, pIdM, pIdR);
          if (output >= ZERO)
          {
             printf("there are %d records that meet the condition\n", output);
@@ -76,7 +76,10 @@ int main(int argc, char *argv[])
       case 2:
          printf("Good bye world\n");
          int i;
-         finalizer(pIdM, nmappers);
+         status = finalizer(pIdM, nmappers,nreducers);
+         if(status != ZERO){
+            perror("There was a problem deleting the files\n");
+         }
          for (i = 0; i < nreducers; i++)
          {
             kill(pIdR[i], 9);

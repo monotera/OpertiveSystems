@@ -17,27 +17,37 @@
 #define OTHER -163
 #define NT 18
 
-int flag = 1;
-int reducerFlag = 0;
+int flagMapper = 1;
+int flagReducer = 1;
 
-void signalHandlerFinisher()
+void signalHandlerMapper()
 {
-   printf("Process %d ending\n", getpid());
-   flag = 0;
+   flagMapper = 0;
 }
 void signalHandlerReducer()
 {
+   flagReducer = 0;
 }
 
-int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
+int init(int *pIdM, int *pIdR, int nmappers, int nreducers, char *log, int lines)
 {
    int fd, pid, idW, idR, i, res;
    char pipeName[100];
+   char splitName[100];
    mode_t fifo_mode = S_IRUSR | S_IWUSR;
    int *allocator[nreducers];
 
-   signal(SIGUSR1, signalHandlerFinisher);
+   signal(SIGUSR1, signalHandlerMapper);
    signal(SIGUSR2, signalHandlerReducer);
+
+   /*Creates split files*/
+   int status = split(log, lines, nmappers);
+   if (status)
+   {
+      return status;
+   }
+
+   /*Creates named pipes*/
    unlink("pIdPipe");
    if (mkfifo("pIdPipe", fifo_mode) == -1)
    {
@@ -45,12 +55,6 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
       return -1;
    }
 
-   unlink("masterPipe");
-   if (mkfifo("masterPipe", fifo_mode) == -1)
-   {
-      perror("mkfifo");
-      return -1;
-   }
    for (i = 0; i < nmappers; i++)
    {
       sprintf(pipeName, "pipeCom%d", i);
@@ -67,6 +71,9 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
          perror("mkfifo");
          return -1;
       }
+   }
+   for (i = 0; i < nreducers; i++)
+   {
       sprintf(pipeName, "masterPipe%d", i);
       unlink(pipeName);
       if (mkfifo(pipeName, fifo_mode) == -1)
@@ -75,6 +82,7 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
          return -1;
       }
    }
+
    assignPipes(nmappers, nreducers, allocator);
 
    for (i = 0; i < nreducers; ++i)
@@ -102,7 +110,7 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
          close(fd);
       }
    }
-   char splitName[100];
+
    for (i = 0; i < nmappers; ++i)
    {
       pid = fork();
@@ -113,7 +121,7 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
          write(fd, &idW, sizeof(int));
          close(fd);
          res = assignReducer(pIdR, nreducers, i, allocator);
-         mapper(i, pIdR[res], pIdM);
+         mapper(i, pIdR[res]);
          exit(0);
       }
       else if (pid < 0)
@@ -132,27 +140,24 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
    unlink("pIdPipe");
    return 0;
 }
-int processControl(char *log, int lines, int nmappers, int nreducers, char *command, int *pIdM, int *pIdR)
+int processControl(int nmappers, int nreducers, char *command, int *pIdM, int *pIdR)
 {
    struct timeval start;
    struct timeval end;
-
    gettimeofday(&start, NULL);
    int status;
-   int fd, rd, ans = 0;
-   reducerFlag = 0;
+   int fd, rd;
+   int ans = 0;
+   int i = 0;
    char pipeName[100];
-   status = split(log, lines, nmappers);
-   if (status)
-   {
-      return status;
-   }
+
    status = sendCommand(command, nmappers, pIdM);
    if (status == MONE)
    {
       return -1;
    }
-   int i = 0;
+
+   /* Receive response from reducers*/
    while (i < nreducers)
    {
       sprintf(pipeName, "masterPipe%d", i);
@@ -178,7 +183,6 @@ int sendCommand(char *commandI, int nmappers, int *pIdM)
    if (com.dif == MONE)
    {
       perror("Error: invalid command\n");
-      deleteFiles(nmappers, "split");
       return -1;
    }
 
@@ -190,36 +194,40 @@ int sendCommand(char *commandI, int nmappers, int *pIdM)
       write(fd, &com, sizeof(struct command));
       close(fd);
    }
-
    return 0;
 }
 
-int mapper(int id, int redId, int *pIdM)
+int mapper(int id, int redId)
 {
    int fd;
    char pipeName[100];
-   char aux[100];
-   int x = 0;
    char splitName[100];
    struct command com;
 
-   /*printf("HOlaM %d\n", getpid());*/
-   while (flag)
+   while (flagMapper)
    {
-      /*printf("Me pause %d\n", getpid());*/
       int i = 0;
       kill(getpid(), SIGSTOP);
+
+      /*Recive command from master*/
       sprintf(pipeName, "pipeCom%d", id);
       fd = open(pipeName, O_RDONLY);
       read(fd, &com, sizeof(struct command));
       close(fd);
 
-      sprintf(splitName, "split%d.txt", id);
       struct map *buff;
       buff = (map *)calloc(CHUNK, sizeof(map) * CHUNK);
+      if (buff == NULL)
+      {
+         perror("Calloc couldnt be done\n");
+         return -1;
+      }
+      sprintf(splitName, "split%d.txt", id);
 
+      /*fills mappers to send*/
       findMatch(splitName, com, id, redId, buff);
 
+      /*Sends data to the reducers*/
       sprintf(pipeName, "pipeMR%d", id);
       do
       {
@@ -236,7 +244,7 @@ int mapper(int id, int redId, int *pIdM)
       close(fd);
       free(buff);
    }
-   printf("Adios\n");
+   return 0;
 }
 int findMatch(char *split, command com, int iter, int redId, map *maps)
 {
@@ -325,28 +333,28 @@ int findMatch(char *split, command com, int iter, int redId, map *maps)
    fclose(file);
    return 0;
 }
-int reducer(int id, int *abcd)
+int reducer(int id, int *pipesId)
 {
-   int j = 0, i = 0, x = 0, cont = 0;
+   int i = 0, cont = 0;
    int fd;
    char pipeName[100];
    struct map mapp;
-   while (flag)
+   while (flagReducer)
    {
-      j = 0;
-      if (abcd[i] == -1)
+      if (pipesId[i] == -1)
       {
-         i = 0;
+         /*waits until it has nothing more to read and then sends data to master*/
          sprintf(pipeName, "masterPipe%d", id);
          fd = open(pipeName, O_WRONLY);
          write(fd, &cont, sizeof(int));
          close(fd);
+         i = 0;
          cont = 0;
       }
       mapp.key = 0;
       kill(getpid(), SIGSTOP);
-      sprintf(pipeName, "pipeMR%d", abcd[i]);
 
+      sprintf(pipeName, "pipeMR%d", pipesId[i]);
       fd = open(pipeName, O_RDONLY);
       while (mapp.key != -1)
       {
@@ -359,7 +367,7 @@ int reducer(int id, int *abcd)
       close(fd);
       i++;
    }
-   printf("AdiosR\n");
+   return 0;
 }
 
 int split(char *logfile, int lines, int nmappers)
@@ -486,6 +494,12 @@ struct command transform_command(char *command)
    struct command com;
    char *col;
    col = (char *)malloc(strlen(command));
+   if (col == NULL)
+   {
+      perror("There was a problem allocating memory\n");
+      com.dif = -1;
+      return com;
+   }
    strcpy(col, command);
    char *token;
    token = strtok(col, ",");
@@ -493,6 +507,12 @@ struct command transform_command(char *command)
    int colum = 0;
    char *dif;
    dif = (char *)malloc(3);
+   if (dif == NULL)
+   {
+      perror("There was a problem allocating memory\n");
+      com.dif = -1;
+      return com;
+   }
    int eq = 0;
    int flag = 0;
 
@@ -573,6 +593,11 @@ int deleteFiles(int canti, char *type)
 {
    int i;
    char *aux = (char *)malloc(10);
+   if (aux == NULL)
+   {
+      perror("There was a problem allocating memory\n");
+      return -1;
+   }
    sprintf(aux, "%s%d.txt", type, 0);
    for (i = ZERO; i < canti; i++)
    {
@@ -589,7 +614,7 @@ int deleteFiles(int canti, char *type)
    return 0;
 }
 
-int finalizer(int *pIdM, int nmappers)
+int finalizer(int *pIdM, int nmappers, int nreducers)
 {
    int i, status;
    char pipeName[100];
@@ -600,9 +625,13 @@ int finalizer(int *pIdM, int nmappers)
       unlink(pipeName);
       sprintf(pipeName, "pipeMR%d", i);
       unlink(pipeName);
+   }
+   for (i = 0; i < nreducers; i++)
+   {
       sprintf(pipeName, "masterPipe%d", i);
       unlink(pipeName);
    }
+
    status = deleteFiles(nmappers, "split");
    if (status)
    {
@@ -615,7 +644,6 @@ int assignReducer(int *pIdR, int nreducers, int index, int **allocator)
 {
    int i;
    int j;
-
    for (i = 0; i < nreducers; i++)
    {
       j = 0;
@@ -636,7 +664,14 @@ int assignPipes(int nmappers, int nreducers, int **allocator)
    int j = 0;
 
    for (i = ZERO; i < nreducers; i++)
+   {
       allocator[i] = (int *)calloc(20, sizeof(int) * 20);
+      if (allocator[i] == NULL)
+      {
+         perror("There was a problem allocating memory\n");
+         return -1;
+      }
+   }
    i = 0;
    while (i < nmappers)
    {

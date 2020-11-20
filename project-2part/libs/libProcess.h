@@ -35,8 +35,8 @@ typedef struct command
    double eq;
 } command;
 
-int init(int *pIdM, int *pIdR, int nmappers, int nreducers);
-void signalHandlerFinisher();
+int init(int *pIdM, int *pIdR, int nmappers, int nreducers,char *log, int lines);
+void signalHandlerMapper();
 void signalHandlerReducer();
 /**
  * Name: Process control.
@@ -45,7 +45,7 @@ void signalHandlerReducer();
  * Description: Function that manages the correct operation of the program, also records the time it takes to execute.
  * */
 
-int processControl(char *log, int lines, int nmappers, int nreducers, char *command, int *pIdM, int *pIdR);
+int processControl(int nmappers, int nreducers, char *command, int *pIdM, int *pIdR);
 
 /**
  * Name: Split.
@@ -95,11 +95,11 @@ int validate_command(int col, char *dif, int eq, int flag);
 
 int deleteFiles(int canti, char *type);
 
-int finalizer(int *pIdM, int nmappers);
+int finalizer(int *pIdM, int nmappers,int nreducers);
 
 int assignPipes(int nmappers, int nreducers, int **allocator);
 
-int mapper(int id, int redId,int *pIdM);
+int mapper(int id, int redId);
 int reducer(int id, int *abcd);
 
 int findMatch(char *split, command com, int iter, int redId, map *maps);
