@@ -134,6 +134,10 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
 }
 int processControl(char *log, int lines, int nmappers, int nreducers, char *command, int *pIdM, int *pIdR)
 {
+   struct timeval start;
+   struct timeval end;
+
+   gettimeofday(&start, NULL);
    int status;
    int fd, rd, ans = 0;
    reducerFlag = 0;
@@ -158,9 +162,9 @@ int processControl(char *log, int lines, int nmappers, int nreducers, char *comm
       ans += rd;
       i++;
    }
-   printf("Master %d ==> %d\n", i, ans);
-   printf("volvi\n");
-   return 0;
+   gettimeofday(&end, NULL);
+   printf("Time of execution: %ld ms\n", ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec)));
+   return ans;
 }
 
 int sendCommand(char *commandI, int nmappers, int *pIdM)

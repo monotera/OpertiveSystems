@@ -13,7 +13,7 @@
 
 #define ONE 1
 #define ZERO 0
-#define FIVE 5
+#define SIX 6
 
 /*
      compile file = gcc -std=c89 -o analogp analogp.c libs/libProcess.c
@@ -21,7 +21,7 @@
 
 int main(int argc, char *argv[])
 {
-   if (argc != FIVE)
+   if (argc != SIX)
    {
       perror("Error : wrong number of parameters\n");
       exit(-1);
