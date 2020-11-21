@@ -1,11 +1,11 @@
 /**
 * Name: Analogp.c (main)
-* Operating Systems - First Release
+* Operating Systems - Second Release
 * Authors: Carlos Andres Erazo Garzon
 *          Nelson Alejandro Mosquera Barrera
 *          Gabriel Andres Niño Carvajal
-* Date: 4 / Oct / 2020
-* Description: Main document for the implementation of threads, 
+* Date: 19 / Nov / 2020
+* Description: Main document for the implementation of process and pipes, 
 *              it corresponds to the interface to which the user 
 *              has access together with  the calls to the necessary functions.
 **/
@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
       perror("There was a problem allocating memory\n");
       return -1;
    }
-   status = init(pIdM, pIdR, nmappers, nreducers, argv[1], lines);
+   status = init(pIdM, pIdR, nmappers, nreducers, argv[1], lines,inter);
    if (status != 0)
    {
       exit(-1);
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
       case 2:
          printf("Good bye world\n");
          int i;
-         status = finalizer(pIdM, nmappers, nreducers);
+         status = finalizer(nmappers, nreducers);
          if (status != ZERO)
          {
             perror("There was a problem deleting the files\n");

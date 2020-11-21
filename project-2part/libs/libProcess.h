@@ -1,10 +1,10 @@
 /**
  * Name: libProcess.h
- * Operative systems first project
+ * Operative systems second project
  * Authors: Carlos Andres Erazo Garzon
  *          Nelson Alejandro Mosquera Barrera
  *          Gabriel Andres Niño Carvajal
- * Date: 4/oct/2020
+ * Date: 19/nov/2020
  **/
 
 #ifndef _LIBPROCESS_H_
@@ -35,13 +35,34 @@ typedef struct command
    double eq;
 } command;
 
-int init(int *pIdM, int *pIdR, int nmappers, int nreducers,char *log, int lines);
+/**
+ * Name: signalHandlerMapper
+ * Inputs: None
+ * Outputs: None
+ * Description: Function that manages SIGUSR1 signals for ending the mappers process
+ * */
 void signalHandlerMapper();
+
+/**
+ * Name: signalHandlerMapper
+ * Inputs: None
+ * Outputs: None
+ * Description: Function that manages SIGUSR2 signals for ending the reducers process
+ * */
 void signalHandlerReducer();
+
+/**
+ * Name: init
+ * Inputs: array of mappers pId, array of reducers pId, number of mappers, number of reducers, name of the file, number of lines, intermediary 
+ * Outputs: integer for validation
+ * Description: this function initializes every pipe and every process
+ * */
+int init(int *pIdM, int *pIdR, int nmappers, int nreducers, char *log, int lines, int inter);
+
 /**
  * Name: Process control.
- * Inputs: Name of the document, Number of lines in the document, Number of mappers, Number of reducers, Search command.
- * Outputs: Integer that verifies the operation of the function.
+ * Inputs: Number of mappers, Number of reducers, Search command, array of mappers pId, array of reducers pId.
+ * Outputs: integer for validation
  * Description: Function that manages the correct operation of the program, also records the time it takes to execute.
  * */
 
@@ -63,7 +84,7 @@ int split(char *logfile, int lines, int nmappers);
  * Description: Validates number of parameters.
  * */
 
-int validationParameters(char *log, int lines, int nmappers, int nreducers,int inter);
+int validationParameters(char *log, int lines, int nmappers, int nreducers, int inter);
 
 /**
  * Name: Line counter.
@@ -73,6 +94,13 @@ int validationParameters(char *log, int lines, int nmappers, int nreducers,int i
  * */
 
 int lineCounter(char *log);
+
+/**
+ * Name: sendCommand.
+ * Inputs: users command, number of mappers, array of mappers pId.
+ * Outputs: 0 if the parameters are valid, -1 if they are invalid.
+ * Description: Sends the users command to the mappers.
+ * */
 
 int sendCommand(char *command, int nmappers, int *pIdM);
 
@@ -93,15 +121,52 @@ struct command transform_command(char *command);
 
 int validate_command(int col, char *dif, int eq, int flag);
 
+/**
+ * Name: deleteFiles.
+ * Inputs: number of files, first part of the name of the file.
+ * Outputs: -1 if the files couldn't be delete it
+ * Description: function that deletes files.
+ * */
 int deleteFiles(int canti, char *type);
 
-int finalizer(int *pIdM, int nmappers,int nreducers);
+/**
+ * Name: finalizer.
+ * Inputs: Number of mappers, number of reducers.
+ * Outputs: -1 if the files couldn't be delete it
+ * Description: function that deletes files and unlinks pipes.
+ * */
+int finalizer(int nmappers, int nreducers);
 
+/**
+ * Name: assignPipes.
+ * Inputs: Number of mappers, number of reducers, array of array that will store the schedule of the reducers.
+ * Outputs: -1 if something went wrong
+ * Description: function that assings pipes to the reducers.
+ * */
 int assignPipes(int nmappers, int nreducers, int **allocator);
 
-int mapper(int id, int redId);
+/**
+ * Name: Mapper.
+ * Inputs: id of the mapper, id of the reducer, Integer that determines if buff files will be create it
+ * Outputs: Integer that verifies the operation of the function.
+ * Description: The mapper begins the search for matches according to the established command, then this is send to the reducer throug a pipe.
+ * */
+int mapper(int id, int redId, int inter);
+
+/**
+ * Name: Reducer.
+ * Inputs: id of the reducer, Integer that determines where the result is saved.
+ * Outputs: Integer that verifies the operation of the function.
+ * Description: The number of hits of the assigned buff documents are counted and the results are send through a pipe.
+ * */
 int reducer(int id, int *abcd);
 
-int findMatch(char *split, command com, int iter, int redId, map *maps);
+/**
+ * Name: findMatch.
+ * Inputs: file name, user's command, mapper id, mapper
+ * Outputs: Integer that verifies the operation of the function.
+ * Description: The mapper begins the search for matches according to the established command, and stores it on the mapper.
+ * */
+int findMatch(char *split, command com, int iter, map *maps);
 
 #endif

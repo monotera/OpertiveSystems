@@ -1,10 +1,10 @@
 /**
  * Name: libProcess.c
- * Operative systems first project
+ * Operative systems second project
  * Authors: Carlos Andres Erazo Garzon
  *          Nelson Alejandro Mosquera Barrera
  *          Gabriel Andres Niño Carvajal
- * Date: 4/oct/2020
+ * Date: 19/nov/2020
  * Description: Implementation of the "libProcess.h" library.
  **/
 
@@ -29,7 +29,7 @@ void signalHandlerReducer()
    flagReducer = 0;
 }
 
-int init(int *pIdM, int *pIdR, int nmappers, int nreducers, char *log, int lines)
+int init(int *pIdM, int *pIdR, int nmappers, int nreducers, char *log, int lines, int inter)
 {
    int fd, pid, idW, idR, i, res;
    char pipeName[100];
@@ -121,7 +121,7 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers, char *log, int lines
          write(fd, &idW, sizeof(int));
          close(fd);
          res = assignReducer(pIdR, nreducers, i, allocator);
-         mapper(i, pIdR[res]);
+         mapper(i, pIdR[res], inter);
          exit(0);
       }
       else if (pid < 0)
@@ -197,13 +197,13 @@ int sendCommand(char *commandI, int nmappers, int *pIdM)
    return 0;
 }
 
-int mapper(int id, int redId)
+int mapper(int id, int redId, int inter)
 {
    int fd;
    char pipeName[100];
    char splitName[100];
    struct command com;
-
+   FILE *writer;
    while (flagMapper)
    {
       int i = 0;
@@ -230,7 +230,7 @@ int mapper(int id, int redId)
       sprintf(splitName, "split%d.txt", id);
 
       /*fills mappers to send*/
-      findMatch(splitName, com, id, redId, buff);
+      findMatch(splitName, com, id, buff);
 
       /*Sends data to the reducers*/
       sprintf(pipeName, "pipeMR%d", id);
@@ -239,19 +239,38 @@ int mapper(int id, int redId)
          kill(redId, SIGCONT);
          fd = open(pipeName, O_WRONLY | O_NONBLOCK);
       } while (fd == -1);
-
+      if (inter == 1)
+      {
+         char *buffFile = (char *)calloc(20, sizeof(char) * 20);
+         if (buffFile == NULL)
+         {
+            perror("There was a problem allocating memory\n");
+            return -1;
+         }
+         sprintf(buffFile, "buff%d.txt", id);
+         writer = fopen(buffFile, "w");
+         if (writer == NULL)
+         {
+            perror("The file couldn't be open\n");
+            inter = 0;
+         }
+      }
       while (buff[i].key != -1)
       {
          write(fd, &buff[i], sizeof(struct map));
+         if (inter == 1)
+            fprintf(writer, "%d %lf \n", buff[i].key, buff[i].value);
          i++;
       }
       write(fd, &buff[i], sizeof(struct map));
+      if (inter == 1)
+         fclose(writer);
       close(fd);
       free(buff);
    }
    return 0;
 }
-int findMatch(char *split, command com, int iter, int redId, map *maps)
+int findMatch(char *split, command com, int iter, map *maps)
 {
    map x;
    int i = 0;
@@ -261,10 +280,9 @@ int findMatch(char *split, command com, int iter, int redId, map *maps)
       perror("There was a problem allocating memory\n");
       return -1;
    }
-   sprintf(buff, "buff%d.txt", iter);
-   /* FILE *writer = fopen(buff, "w");*/
+
    FILE *file = fopen(split, "r");
-   if (file != NULL /*&& writer != NULL*/)
+   if (file != NULL)
    {
       int h = 0;
       h = com.col;
@@ -327,10 +345,6 @@ int findMatch(char *split, command com, int iter, int redId, map *maps)
          default:
             break;
          }
-         /*if (x.value != OTHER)
-         {
-            fprintf(writer, "%d %lf \n", x.key, x.value);
-         }*/
       }
       maps[i].key = -1;
    }
@@ -339,7 +353,6 @@ int findMatch(char *split, command com, int iter, int redId, map *maps)
       perror("Error: The file could not be open\n");
       return -1;
    }
-   /*fclose(writer);*/
    fclose(file);
    return 0;
 }
@@ -643,7 +656,7 @@ int deleteFiles(int canti, char *type)
    return 0;
 }
 
-int finalizer(int *pIdM, int nmappers, int nreducers)
+int finalizer(int nmappers, int nreducers)
 {
    int i, status;
    char pipeName[100];
