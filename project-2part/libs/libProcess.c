@@ -656,7 +656,7 @@ int deleteFiles(int canti, char *type)
    return 0;
 }
 
-int finalizer(int nmappers, int nreducers)
+int finalizer(int nmappers, int nreducers, int inter)
 {
    int i, status;
    char pipeName[100];
@@ -673,7 +673,11 @@ int finalizer(int nmappers, int nreducers)
       sprintf(pipeName, "masterPipe%d", i);
       unlink(pipeName);
    }
-
+   if (inter == 1)
+   {
+      deleteFiles(nmappers, "buff");
+   }
+   
    status = deleteFiles(nmappers, "split");
    if (status)
    {

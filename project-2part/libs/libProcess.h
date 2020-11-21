@@ -135,7 +135,7 @@ int deleteFiles(int canti, char *type);
  * Outputs: -1 if the files couldn't be delete it
  * Description: function that deletes files and unlinks pipes.
  * */
-int finalizer(int nmappers, int nreducers);
+int finalizer(int nmappers, int nreducers, int inter);
 
 /**
  * Name: assignPipes.
