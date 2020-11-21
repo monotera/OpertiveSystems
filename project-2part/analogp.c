@@ -1,11 +1,11 @@
 /**
 * Name: Analogp.c (main)
-* Operating Systems - First Release
+* Operating Systems - Second Release
 * Authors: Carlos Andres Erazo Garzon
 *          Nelson Alejandro Mosquera Barrera
 *          Gabriel Andres Niño Carvajal
-* Date: 4 / Oct / 2020
-* Description: Main document for the implementation of threads, 
+* Date: 19 / Nov / 2020
+* Description: Main document for the implementation of process and pipes, 
 *              it corresponds to the interface to which the user 
 *              has access together with  the calls to the necessary functions.
 **/
@@ -13,7 +13,7 @@
 
 #define ONE 1
 #define ZERO 0
-#define FIVE 5
+#define SIX 6
 
 /*
      compile file = gcc -std=c89 -o analogp analogp.c libs/libProcess.c
@@ -21,7 +21,7 @@
 
 int main(int argc, char *argv[])
 {
-   if (argc != FIVE)
+   if (argc != SIX)
    {
       perror("Error : wrong number of parameters\n");
       exit(-1);
@@ -29,12 +29,14 @@ int main(int argc, char *argv[])
    int lines = 0;
    int nmappers = 0;
    int nreducers = 0;
+   int inter = 0;
    int status = -1;
    int *pIdM, *pIdR;
    lines = atoi(argv[2]);
    nmappers = atoi(argv[3]);
    nreducers = atoi(argv[4]);
-   status = validationParameters(argv[1], lines, nmappers, nreducers);
+   inter = atoi(argv[5]);
+   status = validationParameters(argv[1], lines, nmappers, nreducers, inter);
    if (status != 0)
    {
       printf("\nError: problem wih parameters\n");
@@ -42,8 +44,18 @@ int main(int argc, char *argv[])
       exit(-1);
    }
    pIdM = (int *)calloc(nmappers, sizeof(int));
+   if (pIdM == NULL)
+   {
+      perror("There was a problem allocating memory\n");
+      return -1;
+   }
    pIdR = (int *)calloc(nreducers, sizeof(int));
-   status = init(pIdM, pIdR, nmappers, nreducers);
+   if (pIdR == NULL)
+   {
+      perror("There was a problem allocating memory\n");
+      return -1;
+   }
+   status = init(pIdM, pIdR, nmappers, nreducers, argv[1], lines,inter);
    if (status != 0)
    {
       exit(-1);
@@ -67,7 +79,7 @@ int main(int argc, char *argv[])
          scanf("%s", command);
 
          int output = -1;
-         output = processControl(argv[1], lines, nmappers, nreducers, command, pIdM, pIdR);
+         output = processControl(nmappers, nreducers, command, pIdM, pIdR);
          if (output >= ZERO)
          {
             printf("there are %d records that meet the condition\n", output);
@@ -76,19 +88,22 @@ int main(int argc, char *argv[])
       case 2:
          printf("Good bye world\n");
          int i;
-         finalizer(pIdM,nmappers);
-         for (i = 0; i < nmappers; i++)
+         status = finalizer(nmappers, nreducers);
+         if (status != ZERO)
          {
-            printf("%d\n", pIdM[i]);
-            kill(pIdM[i],SIGCONT);
-            kill(pIdM[i], SIGUSR1);
+            perror("There was a problem deleting the files\n");
          }
          for (i = 0; i < nreducers; i++)
          {
-            printf("%d\n", pIdR[i]);
-            kill(pIdR[i],SIGCONT);
-            kill(pIdR[i], SIGUSR1);
+            kill(pIdR[i], 9);
+            kill(pIdR[i], 9);
          }
+         for (i = 0; i < nmappers; i++)
+         {
+            kill(pIdM[i], 9);
+            kill(pIdM[i], 9);
+         }
+
          wait(&status);
          free(pIdM);
          free(pIdR);

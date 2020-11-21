@@ -1,10 +1,10 @@
 /**
  * Name: libProcess.c
- * Operative systems first project
+ * Operative systems second project
  * Authors: Carlos Andres Erazo Garzon
  *          Nelson Alejandro Mosquera Barrera
  *          Gabriel Andres Niño Carvajal
- * Date: 4/oct/2020
+ * Date: 19/nov/2020
  * Description: Implementation of the "libProcess.h" library.
  **/
 
@@ -17,52 +17,74 @@
 #define OTHER -163
 #define NT 18
 
-int flag = 1;
+int flagMapper = 1;
+int flagReducer = 1;
 
-void signalHandlerFinisher()
+void signalHandlerMapper()
 {
-   printf("Process %d ending\n", getpid());
-   flag = 0;
+   flagMapper = 0;
+}
+void signalHandlerReducer()
+{
+   flagReducer = 0;
 }
 
-
-int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
+int init(int *pIdM, int *pIdR, int nmappers, int nreducers, char *log, int lines, int inter)
 {
-   int fd, pid, idW, idR, i;
+   int fd, pid, idW, idR, i, res;
    char pipeName[100];
+   char splitName[100];
    mode_t fifo_mode = S_IRUSR | S_IWUSR;
-   signal(SIGUSR1, signalHandlerFinisher);
+   int *allocator[nreducers];
+
+   signal(SIGUSR1, signalHandlerMapper);
+   signal(SIGUSR2, signalHandlerReducer);
+
+   /*Creates split files*/
+   int status = split(log, lines, nmappers);
+   if (status)
+   {
+      return status;
+   }
+
+   /*Creates named pipes*/
    unlink("pIdPipe");
    if (mkfifo("pIdPipe", fifo_mode) == -1)
    {
       perror("mkfifo");
       return -1;
    }
-   for (i = 0; i < nmappers; ++i)
+
+   for (i = 0; i < nmappers; i++)
    {
-      pid = fork();
-      if (pid == 0)
+      sprintf(pipeName, "pipeCom%d", i);
+      unlink(pipeName);
+      if (mkfifo(pipeName, fifo_mode) == -1)
       {
-         idW = getpid();
-         fd = open("pIdPipe", O_WRONLY);
-         write(fd, &idW, sizeof(int));
-         close(fd);
-         mapper();
-         exit(0);
+         perror("mkfifo");
+         return -1;
       }
-      else if (pid < 0)
+      sprintf(pipeName, "pipeMR%d", i);
+      unlink(pipeName);
+      if (mkfifo(pipeName, fifo_mode) == -1)
       {
-         printf("Error");
-         exit(-1);
-      }
-      else if (pid > 0)
-      {
-         fd = open("pIdPipe", O_RDONLY);
-         read(fd, &idR, sizeof(int));
-         pIdM[i] = idR;
-         close(fd);
+         perror("mkfifo");
+         return -1;
       }
    }
+   for (i = 0; i < nreducers; i++)
+   {
+      sprintf(pipeName, "masterPipe%d", i);
+      unlink(pipeName);
+      if (mkfifo(pipeName, fifo_mode) == -1)
+      {
+         perror("mkfifo");
+         return -1;
+      }
+   }
+
+   assignPipes(nmappers, nreducers, allocator);
+
    for (i = 0; i < nreducers; ++i)
    {
       pid = fork();
@@ -72,7 +94,7 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
          fd = open("pIdPipe", O_WRONLY);
          write(fd, &idW, sizeof(int));
          close(fd);
-         reducer();
+         reducer(i, allocator[i]);
          exit(0);
       }
       else if (pid < 0)
@@ -88,30 +110,66 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers)
          close(fd);
       }
    }
-   unlink("pIdPipe");
 
-   for (i = 0; i < nmappers; i++)
+   for (i = 0; i < nmappers; ++i)
    {
-      sprintf(pipeName, "pipeCom%d", pIdM[i]);
-      unlink(pipeName);
-      if (mkfifo(pipeName, fifo_mode) == -1)
+      pid = fork();
+      if (pid == 0)
       {
-         perror("mkfifo");
-         return -1;
+         idW = getpid();
+         fd = open("pIdPipe", O_WRONLY);
+         write(fd, &idW, sizeof(int));
+         close(fd);
+         res = assignReducer(pIdR, nreducers, i, allocator);
+         mapper(i, pIdR[res], inter);
+         exit(0);
+      }
+      else if (pid < 0)
+      {
+         printf("Error");
+         exit(-1);
+      }
+      else if (pid > 0)
+      {
+         fd = open("pIdPipe", O_RDONLY);
+         read(fd, &idR, sizeof(int));
+         pIdM[i] = idR;
+         close(fd);
       }
    }
+   unlink("pIdPipe");
    return 0;
 }
-int processControl(char *log, int lines, int nmappers, int nreducers, char *command, int *pIdM, int *pIdR)
+int processControl(int nmappers, int nreducers, char *command, int *pIdM, int *pIdR)
 {
+   struct timeval start;
+   struct timeval end;
+   gettimeofday(&start, NULL);
    int status;
+   int fd, rd;
+   int ans = 0;
+   int i = 0;
+   char pipeName[100];
+
    status = sendCommand(command, nmappers, pIdM);
    if (status == MONE)
    {
       return -1;
    }
-   printf("volvi\n");
-   return 0;
+
+   /* Receive response from reducers*/
+   while (i < nreducers)
+   {
+      sprintf(pipeName, "masterPipe%d", i);
+      fd = open(pipeName, O_RDONLY);
+      read(fd, &rd, sizeof(int));
+      close(fd);
+      ans += rd;
+      i++;
+   }
+   gettimeofday(&end, NULL);
+   printf("Time of execution: %ld ms\n", ((end.tv_sec * 1000000 + end.tv_usec) - (start.tv_sec * 1000000 + start.tv_usec)));
+   return ans;
 }
 
 int sendCommand(char *commandI, int nmappers, int *pIdM)
@@ -125,45 +183,214 @@ int sendCommand(char *commandI, int nmappers, int *pIdM)
    if (com.dif == MONE)
    {
       perror("Error: invalid command\n");
-      deleteFiles(nmappers, "split");
       return -1;
    }
 
    for (i = 0; i < nmappers; i++)
    {
-      sprintf(pipeName, "pipeCom%d", pIdM[i]);
+      sprintf(pipeName, "pipeCom%d", i);
       kill(pIdM[i], SIGCONT);
       fd = open(pipeName, O_WRONLY);
       write(fd, &com, sizeof(struct command));
       close(fd);
    }
-
    return 0;
 }
 
-mapper()
+int mapper(int id, int redId, int inter)
 {
    int fd;
    char pipeName[100];
-
-   while (flag)
+   char splitName[100];
+   struct command com;
+   FILE *writer;
+   while (flagMapper)
    {
+      int i = 0;
       kill(getpid(), SIGSTOP);
-      struct command com;
-      sprintf(pipeName, "pipeCom%d", getpid());
+
+      /*Recive command from master*/
+      sprintf(pipeName, "pipeCom%d", id);
       fd = open(pipeName, O_RDONLY);
       read(fd, &com, sizeof(struct command));
       close(fd);
+
+      struct map *buff;
+      buff = (map *)calloc(CHUNK, sizeof(map) * CHUNK);
+      if (buff == NULL)
+      {
+         perror("There was a problem allocating memory\n");
+         return -1;
+      }
+      if (buff == NULL)
+      {
+         perror("Calloc couldnt be done\n");
+         return -1;
+      }
+      sprintf(splitName, "split%d.txt", id);
+
+      /*fills mappers to send*/
+      findMatch(splitName, com, id, buff);
+
+      /*Sends data to the reducers*/
+      sprintf(pipeName, "pipeMR%d", id);
+      do
+      {
+         kill(redId, SIGCONT);
+         fd = open(pipeName, O_WRONLY | O_NONBLOCK);
+      } while (fd == -1);
+      if (inter == 1)
+      {
+         char *buffFile = (char *)calloc(20, sizeof(char) * 20);
+         if (buffFile == NULL)
+         {
+            perror("There was a problem allocating memory\n");
+            return -1;
+         }
+         sprintf(buffFile, "buff%d.txt", id);
+         writer = fopen(buffFile, "w");
+         if (writer == NULL)
+         {
+            perror("The file couldn't be open\n");
+            inter = 0;
+         }
+      }
+      while (buff[i].key != -1)
+      {
+         write(fd, &buff[i], sizeof(struct map));
+         if (inter == 1)
+            fprintf(writer, "%d %lf \n", buff[i].key, buff[i].value);
+         i++;
+      }
+      write(fd, &buff[i], sizeof(struct map));
+      if (inter == 1)
+         fclose(writer);
+      close(fd);
+      free(buff);
    }
-   printf("Adios\n");
+   return 0;
 }
-reducer()
+int findMatch(char *split, command com, int iter, map *maps)
 {
-   while (flag)
+   map x;
+   int i = 0;
+   char *buff = (char *)calloc(20, sizeof(char) * 20);
+   if (buff == NULL)
    {
-      kill(getpid(), SIGSTOP);
+      perror("There was a problem allocating memory\n");
+      return -1;
    }
-   printf("AdiosR\n");
+
+   FILE *file = fopen(split, "r");
+   if (file != NULL)
+   {
+      int h = 0;
+      h = com.col;
+      double buf[19];
+
+      while (fscanf(file, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf",
+                    &buf[1], &buf[2], &buf[3], &buf[4], &buf[5], &buf[6],
+                    &buf[7], &buf[8], &buf[9], &buf[10], &buf[11], &buf[12],
+                    &buf[13], &buf[14], &buf[15], &buf[16], &buf[17], &buf[18]) != EOF)
+      {
+         x.value = -163;
+         x.key = buf[1];
+         switch (com.dif)
+         {
+         case 1:
+            if (buf[h] < com.eq)
+            {
+               x.value = buf[h];
+               maps[i].key = buf[1];
+               maps[i].value = buf[h];
+               i++;
+            }
+            break;
+         case 2:
+            if (buf[h] > com.eq)
+            {
+               x.value = buf[h];
+               maps[i].key = buf[1];
+               maps[i].value = buf[h];
+               i++;
+            }
+            break;
+         case 3:
+            if (buf[h] == com.eq)
+            {
+               x.value = buf[h];
+               maps[i].key = buf[1];
+               maps[i].value = buf[h];
+               i++;
+            }
+            break;
+         case 4:
+            if (buf[h] >= com.eq)
+            {
+               x.value = buf[h];
+               maps[i].key = buf[1];
+               maps[i].value = buf[h];
+               i++;
+            }
+            break;
+         case 5:
+            if (buf[h] <= com.eq)
+            {
+               x.value = buf[h];
+               maps[i].key = buf[1];
+               maps[i].value = buf[h];
+               i++;
+            }
+            break;
+         default:
+            break;
+         }
+      }
+      maps[i].key = -1;
+   }
+   else
+   {
+      perror("Error: The file could not be open\n");
+      return -1;
+   }
+   fclose(file);
+   return 0;
+}
+int reducer(int id, int *pipesId)
+{
+   int i = 0, cont = 0;
+   int fd;
+   char pipeName[100];
+   struct map mapp;
+   while (flagReducer)
+   {
+      if (pipesId[i] == -1)
+      {
+         /*waits until it has nothing more to read and then sends data to master*/
+         sprintf(pipeName, "masterPipe%d", id);
+         fd = open(pipeName, O_WRONLY);
+         write(fd, &cont, sizeof(int));
+         close(fd);
+         i = 0;
+         cont = 0;
+      }
+      mapp.key = 0;
+      kill(getpid(), SIGSTOP);
+
+      sprintf(pipeName, "pipeMR%d", pipesId[i]);
+      fd = open(pipeName, O_RDONLY);
+      while (mapp.key != -1)
+      {
+         read(fd, &mapp, sizeof(struct map));
+         if (mapp.key != -1)
+         {
+            cont++;
+         }
+      }
+      close(fd);
+      i++;
+   }
+   return 0;
 }
 
 int split(char *logfile, int lines, int nmappers)
@@ -185,9 +412,19 @@ int split(char *logfile, int lines, int nmappers)
    {
 
       char *str = (char *)malloc(CHUNK);
+      if (str == NULL)
+      {
+         perror("There was a problem allocating memory\n");
+         return -1;
+      }
       int cont_lines = 1;
       int cont_splitFer = 0;
       char *aux = (char *)malloc(11);
+      if (aux == NULL)
+      {
+         perror("There was a problem allocating memory\n");
+         return -1;
+      }
       strcpy(aux, "split0.txt");
       FILE *writer;
       flag = 1;
@@ -233,7 +470,7 @@ int split(char *logfile, int lines, int nmappers)
    }
    return 0;
 }
-int validationParameters(char *log, int lines, int nmappers, int nreducers)
+int validationParameters(char *log, int lines, int nmappers, int nreducers, int inter)
 {
    int fileLines;
    fileLines = lineCounter(log);
@@ -262,13 +499,22 @@ int validationParameters(char *log, int lines, int nmappers, int nreducers)
       printf("Invalid number of mappers\n");
       return -1;
    }
-
+   if (inter != 0 && inter != 1)
+   {
+      printf("Invalid number of inter\n");
+      return -1;
+   }
    return 0;
 }
 int lineCounter(char *log)
 {
    char *command;
    command = (char *)calloc(20, sizeof(log) * 20);
+   if (command == NULL)
+   {
+      perror("There was a problem allocating memory\n");
+      return -1;
+   }
    FILE *fp1;
    int lines;
    sprintf(command, "cat %s | wc -l > lineCounterAux.txt", log);
@@ -290,6 +536,12 @@ struct command transform_command(char *command)
    struct command com;
    char *col;
    col = (char *)malloc(strlen(command));
+   if (col == NULL)
+   {
+      perror("There was a problem allocating memory\n");
+      com.dif = -1;
+      return com;
+   }
    strcpy(col, command);
    char *token;
    token = strtok(col, ",");
@@ -297,6 +549,12 @@ struct command transform_command(char *command)
    int colum = 0;
    char *dif;
    dif = (char *)malloc(3);
+   if (dif == NULL)
+   {
+      perror("There was a problem allocating memory\n");
+      com.dif = -1;
+      return com;
+   }
    int eq = 0;
    int flag = 0;
 
@@ -377,6 +635,11 @@ int deleteFiles(int canti, char *type)
 {
    int i;
    char *aux = (char *)malloc(10);
+   if (aux == NULL)
+   {
+      perror("There was a problem allocating memory\n");
+      return -1;
+   }
    sprintf(aux, "%s%d.txt", type, 0);
    for (i = ZERO; i < canti; i++)
    {
@@ -393,13 +656,76 @@ int deleteFiles(int canti, char *type)
    return 0;
 }
 
-int finalizer(int *pIdM, int nmappers)
+int finalizer(int nmappers, int nreducers)
 {
-   int i;
-   char pipeCom[100];
+   int i, status;
+   char pipeName[100];
+
    for (i = 0; i < nmappers; i++)
    {
-      sprintf(pipeCom, "pipeCom%d", pIdM[i]);
-      unlink(pipeCom);
+      sprintf(pipeName, "pipeCom%d", i);
+      unlink(pipeName);
+      sprintf(pipeName, "pipeMR%d", i);
+      unlink(pipeName);
    }
+   for (i = 0; i < nreducers; i++)
+   {
+      sprintf(pipeName, "masterPipe%d", i);
+      unlink(pipeName);
+   }
+
+   status = deleteFiles(nmappers, "split");
+   if (status)
+   {
+      return status;
+   }
+   return 0;
+}
+
+int assignReducer(int *pIdR, int nreducers, int index, int **allocator)
+{
+   int i;
+   int j;
+   for (i = 0; i < nreducers; i++)
+   {
+      j = 0;
+      while (allocator[i][j] != -1)
+      {
+         if (allocator[i][j] == index)
+         {
+            return i;
+         }
+         j++;
+      }
+   }
+}
+int assignPipes(int nmappers, int nreducers, int **allocator)
+{
+   int i = 0;
+   int k = 0;
+   int j = 0;
+
+   for (i = ZERO; i < nreducers; i++)
+   {
+      allocator[i] = (int *)calloc(20, sizeof(int) * 20);
+      if (allocator[i] == NULL)
+      {
+         perror("There was a problem allocating memory\n");
+         return -1;
+      }
+   }
+   i = 0;
+   while (i < nmappers)
+   {
+      allocator[j][k] = i;
+      allocator[j][k + 1] = -1;
+      i++;
+      j++;
+      if (j == nreducers)
+      {
+         j = 0;
+         k++;
+      }
+   }
+   return 0;
 }
