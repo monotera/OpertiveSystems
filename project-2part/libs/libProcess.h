@@ -43,13 +43,6 @@ typedef struct command
  * */
 void signalHandlerMapper();
 
-/**
- * Name: signalHandlerMapper
- * Inputs: None
- * Outputs: None
- * Description: Function that manages SIGUSR2 signals for ending the reducers process
- * */
-void signalHandlerReducer();
 
 /**
  * Name: init

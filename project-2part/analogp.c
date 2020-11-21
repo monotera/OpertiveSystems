@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
    if (argc != SIX)
    {
       perror("Error : wrong number of parameters\n");
+      printf("it should be: analogp  logfile  lineas  nmappers nreducers intermedios ");
       exit(-1);
    }
    int lines = 0;
@@ -94,22 +95,23 @@ int main(int argc, char *argv[])
       case 2:
          printf("Good bye world\n");
          int i;
-         status = finalizer(nmappers, nreducers,inter);
+         status = finalizer(nmappers, nreducers, inter);
          if (status != ZERO)
          {
             perror("There was a problem deleting the files\n");
          }
-         for (i = 0; i < nreducers; i++)
-         {
-            kill(pIdR[i], 9);
-            kill(pIdR[i], 9);
-         }
          for (i = 0; i < nmappers; i++)
          {
-            kill(pIdM[i], 9);
-            kill(pIdM[i], 9);
+            printf("Mapper %d with pId %d is ending...\n", i, pIdM[i]);
+            kill(pIdM[i], SIGCONT);
+            kill(pIdM[i], SIGUSR1);
          }
-
+         for (i = 0; i < nreducers; i++)
+         {
+            printf("Reducer %d with pId %d is ending...\n", i, pIdR[i]);
+            kill(pIdR[i], SIGCONT);
+            kill(pIdR[i], SIGUSR1);
+         }
          wait(&status);
          free(pIdM);
          free(pIdR);
