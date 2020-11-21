@@ -17,16 +17,9 @@
 #define OTHER -163
 #define NT 18
 
-int flagMapper = 1;
-int flagReducer = 1;
-
 void signalHandlerMapper()
 {
-   flagMapper = 0;
-}
-void signalHandlerReducer()
-{
-   flagReducer = 0;
+   exit(0);
 }
 
 int init(int *pIdM, int *pIdR, int nmappers, int nreducers, char *log, int lines, int inter)
@@ -38,7 +31,6 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers, char *log, int lines
    int *allocator[nreducers];
 
    signal(SIGUSR1, signalHandlerMapper);
-   signal(SIGUSR2, signalHandlerReducer);
 
    /*Creates split files*/
    int status = split(log, lines, nmappers);
@@ -83,6 +75,7 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers, char *log, int lines
       }
    }
 
+   /*create mappers and reducers*/
    assignPipes(nmappers, nreducers, allocator);
 
    for (i = 0; i < nreducers; ++i)
@@ -202,9 +195,11 @@ int mapper(int id, int redId, int inter)
    int fd;
    char pipeName[100];
    char splitName[100];
+   sprintf(splitName, "split%d.txt", id);
+   int status;
    struct command com;
    FILE *writer;
-   while (flagMapper)
+   while (ONE)
    {
       int i = 0;
       kill(getpid(), SIGSTOP);
@@ -222,16 +217,13 @@ int mapper(int id, int redId, int inter)
          perror("There was a problem allocating memory\n");
          return -1;
       }
-      if (buff == NULL)
-      {
-         perror("Calloc couldnt be done\n");
-         return -1;
-      }
-      sprintf(splitName, "split%d.txt", id);
 
       /*fills mappers to send*/
-      findMatch(splitName, com, id, buff);
-
+      status = findMatch(splitName, com, id, buff);
+      if (status)
+      {
+         return -1;
+      }
       /*Sends data to the reducers*/
       sprintf(pipeName, "pipeMR%d", id);
       do
@@ -268,6 +260,7 @@ int mapper(int id, int redId, int inter)
       close(fd);
       free(buff);
    }
+   printf("fin\n");
    return 0;
 }
 int findMatch(char *split, command com, int iter, map *maps)
@@ -350,7 +343,6 @@ int findMatch(char *split, command com, int iter, map *maps)
    }
    else
    {
-      perror("Error: The file could not be open\n");
       return -1;
    }
    fclose(file);
@@ -362,7 +354,7 @@ int reducer(int id, int *pipesId)
    int fd;
    char pipeName[100];
    struct map mapp;
-   while (flagReducer)
+   while (ONE)
    {
       if (pipesId[i] == -1)
       {
@@ -390,6 +382,7 @@ int reducer(int id, int *pipesId)
       close(fd);
       i++;
    }
+   printf("fin\n");
    return 0;
 }
 
@@ -656,7 +649,7 @@ int deleteFiles(int canti, char *type)
    return 0;
 }
 
-int finalizer(int nmappers, int nreducers)
+int finalizer(int nmappers, int nreducers, int inter)
 {
    int i, status;
    char pipeName[100];
@@ -672,6 +665,10 @@ int finalizer(int nmappers, int nreducers)
    {
       sprintf(pipeName, "masterPipe%d", i);
       unlink(pipeName);
+   }
+   if (inter == 1)
+   {
+      deleteFiles(nmappers, "buff");
    }
 
    status = deleteFiles(nmappers, "split");

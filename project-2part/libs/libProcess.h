@@ -43,13 +43,6 @@ typedef struct command
  * */
 void signalHandlerMapper();
 
-/**
- * Name: signalHandlerMapper
- * Inputs: None
- * Outputs: None
- * Description: Function that manages SIGUSR2 signals for ending the reducers process
- * */
-void signalHandlerReducer();
 
 /**
  * Name: init
@@ -135,7 +128,7 @@ int deleteFiles(int canti, char *type);
  * Outputs: -1 if the files couldn't be delete it
  * Description: function that deletes files and unlinks pipes.
  * */
-int finalizer(int nmappers, int nreducers);
+int finalizer(int nmappers, int nreducers, int inter);
 
 /**
  * Name: assignPipes.

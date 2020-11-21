@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
    if (argc != SIX)
    {
       perror("Error : wrong number of parameters\n");
+      printf("it should be: analogp  logfile  lineas  nmappers nreducers intermedios ");
       exit(-1);
    }
    int lines = 0;
@@ -55,7 +56,7 @@ int main(int argc, char *argv[])
       perror("There was a problem allocating memory\n");
       return -1;
    }
-   status = init(pIdM, pIdR, nmappers, nreducers, argv[1], lines,inter);
+   status = init(pIdM, pIdR, nmappers, nreducers, argv[1], lines, inter);
    if (status != 0)
    {
       exit(-1);
@@ -70,6 +71,12 @@ int main(int argc, char *argv[])
       switch (option)
       {
       case 1:
+         if (inter == ONE)
+         {
+            printf("\nHello!, Checking for files deletions!\n");
+            deleteFiles(nmappers, "buff");
+            printf("Done!\n");
+         }
          printf("Please insert your command line (column,sign,value)\n");
          printf("\"Column\" must be a number\n");
          printf("\"Sign\" must be an operator between: \"=\", \"<\", \">\", \"<=\", \">= \"\n");
@@ -88,22 +95,23 @@ int main(int argc, char *argv[])
       case 2:
          printf("Good bye world\n");
          int i;
-         status = finalizer(nmappers, nreducers);
+         status = finalizer(nmappers, nreducers, inter);
          if (status != ZERO)
          {
             perror("There was a problem deleting the files\n");
          }
-         for (i = 0; i < nreducers; i++)
-         {
-            kill(pIdR[i], 9);
-            kill(pIdR[i], 9);
-         }
          for (i = 0; i < nmappers; i++)
          {
-            kill(pIdM[i], 9);
-            kill(pIdM[i], 9);
+            printf("Mapper %d with pId %d is ending...\n", i, pIdM[i]);
+            kill(pIdM[i], SIGCONT);
+            kill(pIdM[i], SIGUSR1);
          }
-
+         for (i = 0; i < nreducers; i++)
+         {
+            printf("Reducer %d with pId %d is ending...\n", i, pIdR[i]);
+            kill(pIdR[i], SIGCONT);
+            kill(pIdR[i], SIGUSR1);
+         }
          wait(&status);
          free(pIdM);
          free(pIdR);
