@@ -87,7 +87,7 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers, char *log, int lines
          fd = open("pIdPipe", O_WRONLY);
          write(fd, &idW, sizeof(int));
          close(fd);
-         reducer(i, allocator[i]);
+         reducer(i, allocator[i], inter);
          exit(0);
       }
       else if (pid < 0)
@@ -114,7 +114,7 @@ int init(int *pIdM, int *pIdR, int nmappers, int nreducers, char *log, int lines
          write(fd, &idW, sizeof(int));
          close(fd);
          res = assignReducer(pIdR, nreducers, i, allocator);
-         mapper(i, pIdR[res], inter);
+         mapper(i, pIdR[res]);
          exit(0);
       }
       else if (pid < 0)
@@ -190,7 +190,7 @@ int sendCommand(char *commandI, int nmappers, int *pIdM)
    return 0;
 }
 
-int mapper(int id, int redId, int inter)
+int mapper(int id, int redId)
 {
    int fd;
    char pipeName[100];
@@ -198,7 +198,7 @@ int mapper(int id, int redId, int inter)
    sprintf(splitName, "split%d.txt", id);
    int status;
    struct command com;
-   FILE *writer;
+
    while (ONE)
    {
       int i = 0;
@@ -231,32 +231,12 @@ int mapper(int id, int redId, int inter)
          kill(redId, SIGCONT);
          fd = open(pipeName, O_WRONLY | O_NONBLOCK);
       } while (fd == -1);
-      if (inter == 1)
-      {
-         char *buffFile = (char *)calloc(20, sizeof(char) * 20);
-         if (buffFile == NULL)
-         {
-            perror("There was a problem allocating memory\n");
-            return -1;
-         }
-         sprintf(buffFile, "buff%d.txt", id);
-         writer = fopen(buffFile, "w");
-         if (writer == NULL)
-         {
-            perror("The file couldn't be open\n");
-            inter = 0;
-         }
-      }
       while (buff[i].key != -1)
       {
          write(fd, &buff[i], sizeof(struct map));
-         if (inter == 1)
-            fprintf(writer, "%d %lf \n", buff[i].key, buff[i].value);
          i++;
       }
       write(fd, &buff[i], sizeof(struct map));
-      if (inter == 1)
-         fclose(writer);
       close(fd);
       free(buff);
    }
@@ -348,12 +328,13 @@ int findMatch(char *split, command com, int iter, map *maps)
    fclose(file);
    return 0;
 }
-int reducer(int id, int *pipesId)
+int reducer(int id, int *pipesId, int inter)
 {
    int i = 0, cont = 0;
    int fd;
    char pipeName[100];
    struct map mapp;
+   FILE *writer;
    while (ONE)
    {
       if (pipesId[i] == -1)
@@ -371,14 +352,35 @@ int reducer(int id, int *pipesId)
 
       sprintf(pipeName, "pipeMR%d", pipesId[i]);
       fd = open(pipeName, O_RDONLY);
+      if (inter == 1)
+      {
+         char *buffFile = (char *)calloc(20, sizeof(char) * 20);
+         if (buffFile == NULL)
+         {
+            perror("There was a problem allocating memory\n");
+            return -1;
+         }
+         sprintf(buffFile, "buff%d.txt", id);
+         writer = fopen(buffFile, "a");
+         if (writer == NULL)
+         {
+            perror("The file couldn't be open\n");
+            inter = 0;
+         }
+         free(buffFile);
+      }
       while (mapp.key != -1)
       {
          read(fd, &mapp, sizeof(struct map));
          if (mapp.key != -1)
          {
             cont++;
+            if (inter == 1)
+               fprintf(writer, "%d %lf \n", mapp.key, mapp.value);
          }
       }
+      if (inter == 1)
+         fclose(writer);
       close(fd);
       i++;
    }

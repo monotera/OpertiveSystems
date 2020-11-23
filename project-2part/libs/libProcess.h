@@ -144,7 +144,7 @@ int assignPipes(int nmappers, int nreducers, int **allocator);
  * Outputs: Integer that verifies the operation of the function.
  * Description: The mapper begins the search for matches according to the established command, then this is send to the reducer throug a pipe.
  * */
-int mapper(int id, int redId, int inter);
+int mapper(int id, int redId);
 
 /**
  * Name: Reducer.
@@ -152,7 +152,7 @@ int mapper(int id, int redId, int inter);
  * Outputs: Integer that verifies the operation of the function.
  * Description: The number of hits of the assigned buff documents are counted and the results are send through a pipe.
  * */
-int reducer(int id, int *abcd);
+int reducer(int id, int *pipesId,int inter);
 
 /**
  * Name: findMatch.
