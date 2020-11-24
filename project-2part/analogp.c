@@ -32,7 +32,9 @@ int main(int argc, char *argv[])
    int nreducers = 0;
    int inter = 0;
    int status = -1;
-   int *pIdM, *pIdR;
+   int *pIdM;
+   int *pIdR;
+
    lines = atoi(argv[2]);
    nmappers = atoi(argv[3]);
    nreducers = atoi(argv[4]);
