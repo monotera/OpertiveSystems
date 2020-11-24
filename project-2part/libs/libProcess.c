@@ -24,10 +24,16 @@ void signalHandlerMapper()
 
 int init(int *pIdM, int *pIdR, int nmappers, int nreducers, char *log, int lines, int inter)
 {
-   int fd, pid, idW, idR, i, res;
+   int fd;
+   int pid;
+   int idW;
+   int idR;
+   int i;
+   int res;
    char pipeName[100];
    char splitName[100];
-   mode_t fifo_mode = S_IRUSR | S_IWUSR;
+   mode_t fifo_mode;
+   fifo_mode = S_IRUSR | S_IWUSR;
    int *allocator[nreducers];
 
    signal(SIGUSR1, signalHandlerMapper);
@@ -168,7 +174,8 @@ int processControl(int nmappers, int nreducers, char *command, int *pIdM, int *p
 int sendCommand(char *commandI, int nmappers, int *pIdM)
 {
 
-   int fd, i;
+   int fd;
+   int i;
    char pipeName[100];
    struct command com;
 
@@ -246,7 +253,8 @@ int mapper(int id, int redId)
 int findMatch(char *split, command com, int iter, map *maps)
 {
    map x;
-   int i = 0;
+   int i;
+   i = 0;
    char *buff = (char *)calloc(20, sizeof(char) * 20);
    if (buff == NULL)
    {
@@ -330,7 +338,8 @@ int findMatch(char *split, command com, int iter, map *maps)
 }
 int reducer(int id, int *pipesId, int inter)
 {
-   int i = 0, cont = 0;
+   int i = 0;
+   int cont = 0;
    int fd;
    char pipeName[100];
    struct map mapp;
@@ -653,7 +662,8 @@ int deleteFiles(int canti, char *type)
 
 int finalizer(int nmappers, int nreducers, int inter)
 {
-   int i, status;
+   int i;
+   int status;
    char pipeName[100];
 
    for (i = 0; i < nmappers; i++)
